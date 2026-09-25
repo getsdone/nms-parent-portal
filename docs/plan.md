@@ -138,7 +138,13 @@ schema has no per-star budget and the page says "Family budget".
     PATCH /api/family              accepts those fields, same rules
     GET /api/history?star=<id>     already per star; add the filter
 
-`star` absent means all Stars, which keeps every existing test valid.
+`star` absent means all Stars. Seeding Leo changes the family-wide counts,
+so the existing todos, dashboard and history tests pass `?star=1` to keep
+their expected numbers, the family test expects two Stars, and each file
+gains one unfiltered assertion covering both Stars. Leo's history rows are
+one course, one competition, one camp. In family.ts the three new columns
+thread through StarPatch, ParentPatch, validatePatch, both UPDATE loops, and
+loadFamily's SELECTs.
 
 ### Frontend
 
