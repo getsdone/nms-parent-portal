@@ -14,7 +14,7 @@ app.get(/.*/, (req, res, next) => {
   if (req.path.startsWith("/api/")) {
     return next();
   }
-  res.sendFile(path.join(webDist, "index.html"));
+  res.sendFile("index.html", { root: webDist });
 });
 
 // Express only forwards an error to error middleware registered after the
