@@ -6,6 +6,24 @@ const FAMILY_ID = 1;
 
 const router = Router();
 
+function parseEventId(raw: string): number | null {
+  const id = Number(raw);
+  return Number.isInteger(id) ? id : null;
+}
+
+async function selectEvent(id: number) {
+  const result = await pool.query(
+    `SELECT e.id, e.title, e.kind, e.starts_at, e.ends_at, e.location,
+            e.description, e.rsvp_deadline,
+            (r.family_id IS NOT NULL) AS rsvped
+     FROM events e
+     LEFT JOIN rsvps r ON r.event_id = e.id AND r.family_id = $2
+     WHERE e.id = $1`,
+    [id, FAMILY_ID],
+  );
+  return result.rows[0];
+}
+
 router.get("/", async (_req, res) => {
   const result = await pool.query(
     `SELECT e.id, e.title, e.kind, e.starts_at, e.ends_at, e.location,
@@ -21,9 +39,14 @@ router.get("/", async (_req, res) => {
 });
 
 router.post("/:id/rsvp", async (req, res) => {
-  const eventId = Number(req.params.id);
-  const event = await pool.query("SELECT id FROM events WHERE id = $1", [eventId]);
-  if (event.rowCount === 0) {
+  const eventId = parseEventId(req.params.id);
+  if (eventId === null) {
+    res.status(400).json({ error: "id must be an integer" });
+    return;
+  }
+
+  const existing = await selectEvent(eventId);
+  if (!existing) {
     res.status(404).json({ error: "event not found" });
     return;
   }
@@ -34,22 +57,18 @@ router.post("/:id/rsvp", async (req, res) => {
     [eventId, FAMILY_ID],
   );
 
-  const result = await pool.query(
-    `SELECT e.id, e.title, e.kind, e.starts_at, e.ends_at, e.location,
-            e.description, e.rsvp_deadline,
-            (r.family_id IS NOT NULL) AS rsvped
-     FROM events e
-     LEFT JOIN rsvps r ON r.event_id = e.id AND r.family_id = $2
-     WHERE e.id = $1`,
-    [eventId, FAMILY_ID],
-  );
-  res.json(result.rows[0]);
+  res.json(await selectEvent(eventId));
 });
 
 router.delete("/:id/rsvp", async (req, res) => {
-  const eventId = Number(req.params.id);
-  const event = await pool.query("SELECT id FROM events WHERE id = $1", [eventId]);
-  if (event.rowCount === 0) {
+  const eventId = parseEventId(req.params.id);
+  if (eventId === null) {
+    res.status(400).json({ error: "id must be an integer" });
+    return;
+  }
+
+  const existing = await selectEvent(eventId);
+  if (!existing) {
     res.status(404).json({ error: "event not found" });
     return;
   }
@@ -59,16 +78,7 @@ router.delete("/:id/rsvp", async (req, res) => {
     FAMILY_ID,
   ]);
 
-  const result = await pool.query(
-    `SELECT e.id, e.title, e.kind, e.starts_at, e.ends_at, e.location,
-            e.description, e.rsvp_deadline,
-            (r.family_id IS NOT NULL) AS rsvped
-     FROM events e
-     LEFT JOIN rsvps r ON r.event_id = e.id AND r.family_id = $2
-     WHERE e.id = $1`,
-    [eventId, FAMILY_ID],
-  );
-  res.json(result.rows[0]);
+  res.json(await selectEvent(eventId));
 });
 
 export default router;
