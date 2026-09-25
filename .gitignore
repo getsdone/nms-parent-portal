@@ -4,3 +4,5 @@ dist/
 .env.*
 .playwright-mcp/
 .serena/
+test-results/
+playwright-report/
