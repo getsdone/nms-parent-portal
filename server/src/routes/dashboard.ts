@@ -31,8 +31,20 @@ interface RsvpDeadline {
   starts_at: Date;
 }
 
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
+  const { star } = req.query;
+  let starId: number | null = null;
+  if (star !== undefined) {
+    starId = Number(star);
+    if (typeof star !== "string" || !Number.isInteger(starId) || starId <= 0) {
+      return res.status(400).json({ error: "star must be a positive integer" });
+    }
+  }
+
   const TODO_COLUMNS = `id, title, to_char(due_date, 'YYYY-MM-DD') AS due_date, link`;
+  // star absent means every Star's todos; events and budget are unaffected
+  // by the Star switcher, per WP7's plan.
+  const STAR_FILTER = `($2::int IS NULL OR star_id = $2 OR star_id IS NULL)`;
 
   const [
     overdueTodos,
@@ -45,17 +57,18 @@ router.get("/", async (_req, res) => {
       `SELECT ${TODO_COLUMNS}
        FROM todos
        WHERE family_id = $1 AND required AND completed_at IS NULL
-         AND due_date < CURRENT_DATE
+         AND due_date < CURRENT_DATE AND ${STAR_FILTER}
        ORDER BY due_date ASC`,
-      [FAMILY_ID],
+      [FAMILY_ID, starId],
     ),
     pool.query<TodoNudge>(
       `SELECT ${TODO_COLUMNS}
        FROM todos
        WHERE family_id = $1 AND completed_at IS NULL
-         AND due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + $2::int
+         AND due_date BETWEEN CURRENT_DATE AND CURRENT_DATE + $3::int
+         AND ($2::int IS NULL OR star_id = $2 OR star_id IS NULL)
        ORDER BY due_date ASC`,
-      [FAMILY_ID, DUE_SOON_DAYS],
+      [FAMILY_ID, starId, DUE_SOON_DAYS],
     ),
     pool.query<RsvpUpcoming>(
       `SELECT e.id, e.title, e.starts_at, e.kind, e.location

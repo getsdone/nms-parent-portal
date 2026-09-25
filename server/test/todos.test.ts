@@ -21,11 +21,12 @@ async function withServer(fn: (base: string) => Promise<void>) {
   }
 }
 
-// Counts come from db/seed.sql's own comment: 8 todos, 3 overdue required,
-// 2 due within 7 days, 1 later (upcoming), 2 already completed (done).
-test("GET /api/todos returns all 8 seeded rows with correct status counts", async () => {
+// Counts come from db/seed.sql's own comment: Sofia's 8 todos (6 star_id=1
+// plus 2 family-wide star_id=NULL) all surface under ?star=1: 3 overdue
+// required, 2 due within 7 days, 1 later (upcoming), 2 already completed.
+test("GET /api/todos?star=1 returns Sofia's 8 rows with correct status counts", async () => {
   await withServer(async (base) => {
-    const res = await fetch(`${base}/api/todos`);
+    const res = await fetch(`${base}/api/todos?star=1`);
     assert.equal(res.status, 200);
     const todos = (await res.json()) as Todo[];
     assert.equal(todos.length, 8);
@@ -35,6 +36,29 @@ test("GET /api/todos returns all 8 seeded rows with correct status counts", asyn
       counts[todo.status]++;
     }
     assert.deepEqual(counts, { done: 2, overdue: 3, due_soon: 2, upcoming: 1 });
+  });
+});
+
+// Unfiltered (no ?star) includes Leo's 4 todos too: 12 total, 5 overdue
+// required (3 from Sofia's rows above, 2 from Leo's).
+test("GET /api/todos with no star filter returns all 12 rows across both stars", async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/todos`);
+    assert.equal(res.status, 200);
+    const todos = (await res.json()) as Todo[];
+    assert.equal(todos.length, 12);
+
+    const overdueRequired = todos.filter(
+      (t) => t.status === "overdue" && t.required,
+    );
+    assert.equal(overdueRequired.length, 5);
+  });
+});
+
+test("GET /api/todos?star=0 returns 400", async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/todos?star=0`);
+    assert.equal(res.status, 400);
   });
 });
 
