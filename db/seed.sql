@@ -6,24 +6,45 @@ INSERT INTO families (id, name, address_line1, city, state, zip) VALUES
   (1, 'The Rivera Family', '4210 Speedway Ave', 'Austin', 'TX', '78751');
 SELECT setval('families_id_seq', (SELECT MAX(id) FROM families));
 
-INSERT INTO parents (family_id, name, email, phone, is_primary) VALUES
-  (1, 'Elena Rivera', 'elena.rivera@example.com', '512-555-0134', TRUE),
-  (1, 'Marcus Rivera', 'marcus.rivera@example.com', '512-555-0198', FALSE);
+-- Rosa Alvarez is a caregiver (grandparent who drives to camp): phone only,
+-- no email, not primary. The two guardians keep their existing rows.
+INSERT INTO parents (family_id, name, email, phone, is_primary, preferred_language, role) VALUES
+  (1, 'Elena Rivera', 'elena.rivera@example.com', '512-555-0134', TRUE, 'English', 'guardian'),
+  (1, 'Marcus Rivera', 'marcus.rivera@example.com', '512-555-0198', FALSE, 'Spanish', 'guardian'),
+  (1, 'Rosa Alvarez', NULL, '512-555-0177', FALSE, NULL, 'caregiver');
 
-INSERT INTO stars (family_id, first_name, grade, school_name, school_district) VALUES
-  (1, 'Sofia', 7, 'Lamar Middle School', 'Austin ISD');
+INSERT INTO stars (family_id, first_name, grade, school_name, school_district, math_teacher, counselor_email) VALUES
+  (1, 'Sofia', 7, 'Lamar Middle School', 'Austin ISD', 'Mr. Alvarez', 'counselor.lamar@austinisd.org'),
+  (1, 'Leo', 4, 'Lamar Middle School', 'Austin ISD', 'Ms. Chen', 'counselor.lamar@austinisd.org');
 
 -- todos: 3 overdue required, 2 due within 7 days of the run date, 1 later,
--- 2 completed.
-INSERT INTO todos (family_id, title, description, link, due_date, required, completed_at) VALUES
-  (1, 'Submit enrollment confirmation', 'Confirm Sofia''s spot for the fall term.', 'https://nationalmathstars.org/forms/enrollment', CURRENT_DATE - 15, TRUE, NULL),
-  (1, 'Upload proof of grade level', 'A report card or enrollment letter showing 7th grade.', 'https://nationalmathstars.org/forms/grade-proof', CURRENT_DATE - 10, TRUE, NULL),
-  (1, 'Complete family survey', 'Annual survey on goals and availability.', NULL, CURRENT_DATE - 5, TRUE, NULL),
-  (1, 'Register for fall competition', 'MATHCOUNTS chapter round registration.', 'https://nationalmathstars.org/forms/mathcounts-fall', CURRENT_DATE + 2, FALSE, NULL),
-  (1, 'Submit W-9 for reimbursement', 'Needed before any camp reimbursement can be paid out.', NULL, CURRENT_DATE + 6, TRUE, NULL),
-  (1, 'Book winter camp travel', 'Reserve flights before prices rise.', NULL, CURRENT_DATE + 51, FALSE, NULL),
-  (1, 'RSVP to welcome call', 'Fall welcome call for new and returning families.', 'https://nationalmathstars.org/events/welcome-call', CURRENT_DATE - 55, TRUE, date_trunc('day', now()) - interval '55 days' + interval '15 hours 4 minutes'),
-  (1, 'Update emergency contact', 'Confirm current emergency contact info on file.', NULL, CURRENT_DATE - 20, FALSE, date_trunc('day', now()) - interval '21 days' + interval '10 hours 22 minutes');
+-- 2 completed. All belong to Sofia (star_id 1) except the two family-wide
+-- ones (survey, W-9), which stay star_id NULL so ?star=<any> still surfaces
+-- them.
+-- The two completed rows below (RSVP to welcome call, Update emergency
+-- contact) get completed_by = 1 (Elena Rivera). Leo's completed row keeps
+-- completed_by NULL: completed_by is nullable, and the seed only backfills
+-- who completed Sofia's two.
+INSERT INTO todos (family_id, star_id, title, description, link, due_date, required, completed_at, completed_by) VALUES
+  (1, 1, 'Submit enrollment confirmation', 'Confirm Sofia''s spot for the fall term.', 'https://nationalmathstars.org/forms/enrollment', CURRENT_DATE - 15, TRUE, NULL, NULL),
+  (1, 1, 'Upload proof of grade level', 'A report card or enrollment letter showing 7th grade.', 'https://nationalmathstars.org/forms/grade-proof', CURRENT_DATE - 10, TRUE, NULL, NULL),
+  (1, NULL, 'Complete family survey', 'Annual survey on goals and availability.', NULL, CURRENT_DATE - 5, TRUE, NULL, NULL),
+  (1, 1, 'Register for fall competition', 'MATHCOUNTS chapter round registration.', 'https://nationalmathstars.org/forms/mathcounts-fall', CURRENT_DATE + 2, FALSE, NULL, NULL),
+  (1, NULL, 'Submit W-9 for reimbursement', 'Needed before any camp reimbursement can be paid out.', NULL, CURRENT_DATE + 6, TRUE, NULL, NULL),
+  (1, 1, 'Book winter camp travel', 'Reserve flights before prices rise.', NULL, CURRENT_DATE + 51, FALSE, NULL, NULL),
+  (1, 1, 'RSVP to welcome call', 'Fall welcome call for new and returning families.', 'https://nationalmathstars.org/events/welcome-call', CURRENT_DATE - 55, TRUE, date_trunc('day', now()) - interval '55 days' + interval '15 hours 4 minutes', 1),
+  (1, 1, 'Update emergency contact', 'Confirm current emergency contact info on file.', NULL, CURRENT_DATE - 20, FALSE, date_trunc('day', now()) - interval '21 days' + interval '10 hours 22 minutes', 1);
+
+-- Leo's todos (star_id 2): 2 overdue required, 1 due soon, 1 done. These
+-- only show up when the unfiltered /api/todos call is used or ?star=2.
+-- completed_by omitted here: it defaults to NULL, so Leo's completed row
+-- (last one, below) stays unattributed. Only Sofia's two completed rows
+-- above were backfilled with a completer.
+INSERT INTO todos (family_id, star_id, title, description, link, due_date, required, completed_at) VALUES
+  (1, 2, 'Submit enrollment confirmation', 'Confirm Leo''s spot for the fall term.', 'https://nationalmathstars.org/forms/enrollment', CURRENT_DATE - 12, TRUE, NULL),
+  (1, 2, 'Upload proof of grade level', 'A report card or enrollment letter showing 4th grade.', 'https://nationalmathstars.org/forms/grade-proof', CURRENT_DATE - 3, TRUE, NULL),
+  (1, 2, 'Register for fall math circle', 'Sign up for the after-school math circle.', NULL, CURRENT_DATE + 4, FALSE, NULL),
+  (1, 2, 'Update emergency contact', 'Confirm current emergency contact info on file.', NULL, CURRENT_DATE - 18, FALSE, date_trunc('day', now()) - interval '19 days' + interval '9 hours 10 minutes');
 
 -- program_history: 10 rows across course/competition/camp with results.
 INSERT INTO program_history (star_id, kind, title, provider, start_date, end_date, result, notes) VALUES
@@ -37,6 +58,14 @@ INSERT INTO program_history (star_id, kind, title, provider, start_date, end_dat
   (1, 'course', 'Geometry Enrichment', 'Art of Problem Solving', CURRENT_DATE - 116, CURRENT_DATE - 42, 'B+', 'Elective summer course.'),
   (1, 'competition', 'MATHCOUNTS State Round 2026', 'MATHCOUNTS', CURRENT_DATE - 160, CURRENT_DATE - 160, '12th place team', 'First state-level appearance.'),
   (1, 'course', 'Algebra II', 'Art of Problem Solving', CURRENT_DATE - 24, CURRENT_DATE + 245, NULL, 'Just started; no results yet.');
+
+-- Leo's program_history (star_id 2): 3 rows, one each of course,
+-- competition, camp. Sofia has 4 competition rows, so ?star=1 keeps
+-- kind=competition at 4 while the unfiltered call rises to 5.
+INSERT INTO program_history (star_id, kind, title, provider, start_date, end_date, result, notes) VALUES
+  (2, 'course', 'Early Number Sense', 'Art of Problem Solving', CURRENT_DATE - 300, CURRENT_DATE - 210, 'A', 'First formal enrichment course.'),
+  (2, 'competition', 'MATHCOUNTS Mini 2025', 'MATHCOUNTS', CURRENT_DATE - 190, CURRENT_DATE - 190, 'Participant', 'First competition exposure.'),
+  (2, 'camp', 'Summer Math Explorers 2025', 'AoPS Academy Austin', CURRENT_DATE - 150, CURRENT_DATE - 140, 'Completed', 'Introductory problem-solving camp.');
 
 -- budgets: one row, fiscal year 2026, $5,000 allocated.
 INSERT INTO budgets (family_id, fiscal_year, allocated_cents) VALUES
@@ -74,3 +103,15 @@ SELECT setval('events_id_seq', (SELECT MAX(id) FROM events));
 INSERT INTO rsvps (event_id, family_id) VALUES
   (1, 1),
   (3, 1);
+
+-- documents: 6 rows across both stars (plus one family-wide, star_id NULL)
+-- and all 4 statuses. Two rows link to todos that are seeded completed
+-- above (ids 7 and 8, "RSVP to welcome call" and "Update emergency
+-- contact", both Sofia's/star_id 1) via todo_id.
+INSERT INTO documents (family_id, star_id, todo_id, title, kind, status, submitted_at, note) VALUES
+  (1, 1, 7, 'Welcome Call RSVP Confirmation', 'form', 'accepted', now() - interval '58 days', NULL),
+  (1, 1, 8, 'Emergency Contact Update Form', 'form', 'accepted', now() - interval '19 days', NULL),
+  (1, 1, NULL, 'MATHCOUNTS Registration Upload', 'upload', 'under_review', now() - interval '10 days', 'Waiting on chapter coordinator confirmation.'),
+  (1, 2, NULL, 'Grade Level Proof', 'upload', 'needs_attention', now() - interval '5 days', 'Photo was blurry; please re-upload a clear copy.'),
+  (1, 2, NULL, 'Math Circle Participation Agreement', 'agreement', 'received', now() - interval '2 days', NULL),
+  (1, NULL, NULL, 'Program Photo Release', 'agreement', 'received', now() - interval '40 days', NULL);

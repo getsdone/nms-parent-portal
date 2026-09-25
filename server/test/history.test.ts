@@ -28,9 +28,20 @@ async function withServer(fn: (baseUrl: string) => Promise<void>) {
   }
 }
 
-test("GET /api/history returns one star with 10 entries in start_date desc order", async () => {
+// Unfiltered now covers both stars (Sofia and Leo).
+test("GET /api/history with no star filter returns both stars", async () => {
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/api/history`);
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as HistoryResponse;
+
+    assert.equal(body.stars.length, 2);
+  });
+});
+
+test("GET /api/history?star=1 returns one star with 10 entries in start_date desc order", async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/history?star=1`);
     assert.equal(res.status, 200);
     const body = (await res.json()) as HistoryResponse;
 
@@ -44,14 +55,15 @@ test("GET /api/history returns one star with 10 entries in start_date desc order
   });
 });
 
-test("GET /api/history?kind=competition returns only competitions, count matching seed", async () => {
+test("GET /api/history?kind=competition&star=1 returns only competitions, count matching seed", async () => {
   await withServer(async (baseUrl) => {
-    const res = await fetch(`${baseUrl}/api/history?kind=competition`);
+    const res = await fetch(`${baseUrl}/api/history?kind=competition&star=1`);
     assert.equal(res.status, 200);
     const body = (await res.json()) as HistoryResponse;
 
     const [star] = body.stars;
-    // seed.sql has 4 program_history rows with kind = 'competition'.
+    // seed.sql has 4 program_history rows with kind = 'competition' for
+    // Sofia (star 1).
     assert.equal(star.history.length, 4);
     for (const entry of star.history) {
       assert.equal(entry.kind, "competition");
@@ -59,9 +71,34 @@ test("GET /api/history?kind=competition returns only competitions, count matchin
   });
 });
 
+// Leo (star 2) adds 1 more competition row, so the unfiltered count across
+// both stars rises to 5.
+test("GET /api/history?kind=competition with no star filter returns 5 total across both stars", async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/history?kind=competition`);
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as HistoryResponse;
+
+    const total = body.stars.reduce((sum, star) => sum + star.history.length, 0);
+    assert.equal(total, 5);
+    for (const star of body.stars) {
+      for (const entry of star.history) {
+        assert.equal(entry.kind, "competition");
+      }
+    }
+  });
+});
+
 test("GET /api/history?kind=bogus returns 400", async () => {
   await withServer(async (baseUrl) => {
     const res = await fetch(`${baseUrl}/api/history?kind=bogus`);
+    assert.equal(res.status, 400);
+  });
+});
+
+test("GET /api/history?star=abc returns 400", async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/history?star=abc`);
     assert.equal(res.status, 400);
   });
 });

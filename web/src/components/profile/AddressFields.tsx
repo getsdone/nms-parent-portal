@@ -1,18 +1,21 @@
 import type { Family } from "./types";
 
+export type AddressField = keyof Pick<Family, "address_line1" | "city" | "state" | "zip">;
+
 interface Props {
   family: Family;
-  onChange: (field: keyof Pick<Family, "address_line1" | "city" | "state" | "zip">, value: string) => void;
+  onChange: (field: AddressField, value: string) => void;
 }
 
+/** Inputs only; the Family info section card supplies the heading and actions. */
 export default function AddressFields({ family, onChange }: Props) {
   return (
-    <fieldset className="fieldset">
-      <legend>Address</legend>
+    <>
       <label className="field">
-        Street address
+        Street
         <input
           type="text"
+          autoComplete="street-address"
           value={family.address_line1}
           onChange={(e) => onChange("address_line1", e.target.value)}
         />
@@ -21,6 +24,7 @@ export default function AddressFields({ family, onChange }: Props) {
         City
         <input
           type="text"
+          autoComplete="address-level2"
           value={family.city}
           onChange={(e) => onChange("city", e.target.value)}
         />
@@ -29,18 +33,20 @@ export default function AddressFields({ family, onChange }: Props) {
         State
         <input
           type="text"
+          autoComplete="address-level1"
           value={family.state}
           onChange={(e) => onChange("state", e.target.value)}
         />
       </label>
       <label className="field">
-        ZIP
+        ZIP code
         <input
           type="text"
+          autoComplete="postal-code"
           value={family.zip}
           onChange={(e) => onChange("zip", e.target.value)}
         />
       </label>
-    </fieldset>
+    </>
   );
 }

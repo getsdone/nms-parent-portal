@@ -12,10 +12,14 @@
     "dev": "echo 'Run in two terminals: npm run dev:web  and  npm run dev:server'",
     "build": "npm run build --workspace web && tsc -p server/tsconfig.json --noEmit",
     "start": "tsx server/src/index.ts",
-    "test": "tsx --test --test-concurrency=1 server/test/*.test.ts",
-    "db:apply": "tsx db/apply.ts"
+    "test": "npm run test:unit && npm run test:server",
+    "db:apply": "tsx db/apply.ts",
+    "test:server": "tsx --test --test-concurrency=1 server/test/*.test.ts",
+    "test:unit": "TZ=America/Los_Angeles tsx --test web/src/**/*.test.ts && TZ=UTC tsx --test web/src/**/*.test.ts && TZ=Pacific/Kiritimati tsx --test web/src/**/*.test.ts",
+    "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/pg": "^8.11.10",
     "dotenv": "^16.4.5",
     "pg": "^8.13.1",

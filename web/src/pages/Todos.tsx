@@ -1,17 +1,30 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import TodoItem, { type Todo } from "../components/todos/TodoItem";
+import { useStar, withStar } from "../star";
 
 export default function Todos() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
+  const { star, ready, actingParent } = useStar();
+  const starId = star?.id;
 
   useEffect(() => {
-    api<Todo[]>("/todos")
-      .then(setTodos)
-      .catch((err) => setError(err.message));
-  }, []);
+    if (!ready) return;
+    let cancelled = false;
+    setError(null);
+    api<Todo[]>(withStar("/todos", starId))
+      .then((rows) => {
+        if (!cancelled) setTodos(rows);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, starId]);
 
   async function handleToggle(id: number, completed: boolean) {
     // Optimistic update; PATCH's response (the source of truth for the
@@ -24,6 +37,8 @@ export default function Todos() {
               ...t,
               status: completed ? "done" : "upcoming",
               completed_at: completed ? new Date().toISOString() : null,
+              completed_by: completed ? (actingParent?.id ?? null) : null,
+              completed_by_name: completed ? (actingParent?.name ?? null) : null,
             }
           : t,
       ),
@@ -31,7 +46,7 @@ export default function Todos() {
     try {
       const updated = await api<Todo>(`/todos/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ completed }),
+        body: JSON.stringify({ completed, parent_id: actingParent?.id }),
       });
       setTodos((prev) => prev.map((t) => (t.id === id ? updated : t)));
     } catch (err) {
@@ -54,6 +69,7 @@ export default function Todos() {
         <h1 className="page__title">To-dos</h1>
         {todos.length > 0 && (
           <p className="page__lede">
+            {star ? `For ${star.first_name} · ` : ""}
             {done.length} of {todos.length} done this year
           </p>
         )}

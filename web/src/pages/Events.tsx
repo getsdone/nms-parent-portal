@@ -54,6 +54,9 @@ export default function Events() {
       <header>
         <h1 className="page__title">Events</h1>
         <p className="page__lede">Virtual and in person, for Stars and families.</p>
+        <a className="link" href="/api/calendar.ics">
+          Subscribe to your calendar
+        </a>
       </header>
       {error && <p className="alert" role="alert">{error}</p>}
 

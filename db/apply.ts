@@ -21,6 +21,7 @@ const TABLES = [
   "budget_transactions",
   "events",
   "rsvps",
+  "documents",
 ];
 
 async function main() {

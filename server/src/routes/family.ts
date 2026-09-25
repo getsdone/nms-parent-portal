@@ -16,9 +16,11 @@ interface FamilyResponse {
   parents: Array<{
     id: number;
     name: string;
-    email: string;
+    email: string | null;
     phone: string | null;
     is_primary: boolean;
+    preferred_language: string | null;
+    role: string;
   }>;
   stars: Array<{
     id: number;
@@ -26,6 +28,8 @@ interface FamilyResponse {
     grade: number;
     school_name: string | null;
     school_district: string | null;
+    math_teacher: string | null;
+    counselor_email: string | null;
   }>;
 }
 
@@ -42,11 +46,11 @@ async function loadFamily(
   }
 
   const parentsResult = await client.query(
-    "SELECT id, name, email, phone, is_primary FROM parents WHERE family_id = $1 ORDER BY id",
+    "SELECT id, name, email, phone, is_primary, preferred_language, role FROM parents WHERE family_id = $1 ORDER BY id",
     [FAMILY_ID],
   );
   const starsResult = await client.query(
-    "SELECT id, first_name, grade, school_name, school_district FROM stars WHERE family_id = $1 ORDER BY id",
+    "SELECT id, first_name, grade, school_name, school_district, math_teacher, counselor_email FROM stars WHERE family_id = $1 ORDER BY id",
     [FAMILY_ID],
   );
 
@@ -71,6 +75,8 @@ interface StarPatch {
   school_name?: string;
   school_district?: string;
   grade?: number;
+  math_teacher?: string;
+  counselor_email?: string;
 }
 
 interface ParentPatch {
@@ -78,6 +84,7 @@ interface ParentPatch {
   name?: string;
   email?: string;
   phone?: string;
+  preferred_language?: string;
 }
 
 interface FamilyPatchBody {
@@ -117,6 +124,12 @@ function validatePatch(body: FamilyPatchBody): string | null {
       if (s.grade !== undefined && !Number.isInteger(s.grade)) {
         return "star grade must be an integer";
       }
+      if (s.math_teacher !== undefined && typeof s.math_teacher !== "string") {
+        return "star math_teacher must be a string";
+      }
+      if (s.counselor_email !== undefined && typeof s.counselor_email !== "string") {
+        return "star counselor_email must be a string";
+      }
     }
   }
 
@@ -138,6 +151,9 @@ function validatePatch(body: FamilyPatchBody): string | null {
       if (p.phone !== undefined && typeof p.phone !== "string") {
         return "parent phone must be a string";
       }
+      if (p.preferred_language !== undefined && typeof p.preferred_language !== "string") {
+        return "parent preferred_language must be a string";
+      }
     }
   }
 
@@ -154,6 +170,47 @@ router.patch("/", async (req, res) => {
 
   const stars = (body.stars ?? []) as StarPatch[];
   const parents = (body.parents ?? []) as ParentPatch[];
+
+  // ?parent=<id> is the prototype's stand-in for a logged-in session (see
+  // WP8 plan: no auth yet, the client sends who is acting). Absent, this
+  // patch keeps today's unrestricted guardian behavior.
+  const parentQuery = req.query.parent;
+  if (parentQuery !== undefined) {
+    const actingParentId = Number(parentQuery);
+    if (
+      typeof parentQuery !== "string" ||
+      !Number.isInteger(actingParentId) ||
+      actingParentId <= 0
+    ) {
+      res.status(400).json({ error: "parent must be a positive integer" });
+      return;
+    }
+    const roleResult = await pool.query<{ role: string }>(
+      "SELECT role FROM parents WHERE id = $1 AND family_id = $2",
+      [actingParentId, FAMILY_ID],
+    );
+    const role = roleResult.rows[0]?.role;
+    if (role === undefined) {
+      res.status(404).json({ error: "parent not found for this family" });
+      return;
+    }
+    if (role === "caregiver") {
+      const onlyOwnContactRow =
+        body.address_line1 === undefined &&
+        body.city === undefined &&
+        body.state === undefined &&
+        body.zip === undefined &&
+        body.stars === undefined &&
+        parents.length === 1 &&
+        parents[0].id === actingParentId;
+      if (!onlyOwnContactRow) {
+        res.status(403).json({
+          error: "caregivers may only edit their own contact details",
+        });
+        return;
+      }
+    }
+  }
 
   const client = await pool.connect();
   try {
@@ -212,6 +269,8 @@ router.patch("/", async (req, res) => {
       if (star.school_name !== undefined) fields.push(["school_name", star.school_name]);
       if (star.school_district !== undefined) fields.push(["school_district", star.school_district]);
       if (star.grade !== undefined) fields.push(["grade", star.grade]);
+      if (star.math_teacher !== undefined) fields.push(["math_teacher", star.math_teacher]);
+      if (star.counselor_email !== undefined) fields.push(["counselor_email", star.counselor_email]);
       if (fields.length === 0) continue;
       const setClause = fields.map(([key], i) => `${key} = $${i + 2}`).join(", ");
       const values = fields.map(([, value]) => value);
@@ -223,6 +282,7 @@ router.patch("/", async (req, res) => {
       if (parent.name !== undefined) fields.push(["name", parent.name]);
       if (parent.email !== undefined) fields.push(["email", parent.email]);
       if (parent.phone !== undefined) fields.push(["phone", parent.phone]);
+      if (parent.preferred_language !== undefined) fields.push(["preferred_language", parent.preferred_language]);
       if (fields.length === 0) continue;
       const setClause = fields.map(([key], i) => `${key} = $${i + 2}`).join(", ");
       const values = fields.map(([, value]) => value);

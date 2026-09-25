@@ -1,5 +1,5 @@
 -- Prototype schema: dropped and recreated on every db:apply run.
-DROP TABLE IF EXISTS rsvps, events, budget_transactions, budgets,
+DROP TABLE IF EXISTS documents, rsvps, events, budget_transactions, budgets,
   program_history, todos, stars, parents, families CASCADE;
 
 CREATE TABLE families (
@@ -15,9 +15,11 @@ CREATE TABLE parents (
   id SERIAL PRIMARY KEY,
   family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  email TEXT NOT NULL,
+  email TEXT,
   phone TEXT,
-  is_primary BOOLEAN NOT NULL DEFAULT FALSE
+  is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+  preferred_language TEXT,
+  role TEXT NOT NULL DEFAULT 'guardian' CHECK (role IN ('guardian', 'caregiver'))
 );
 
 CREATE TABLE stars (
@@ -26,18 +28,22 @@ CREATE TABLE stars (
   first_name TEXT NOT NULL,
   grade INTEGER NOT NULL,
   school_name TEXT,
-  school_district TEXT
+  school_district TEXT,
+  math_teacher TEXT,
+  counselor_email TEXT
 );
 
 CREATE TABLE todos (
   id SERIAL PRIMARY KEY,
   family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+  star_id INTEGER REFERENCES stars(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   link TEXT,
   due_date DATE,
   required BOOLEAN NOT NULL DEFAULT FALSE,
-  completed_at TIMESTAMPTZ
+  completed_at TIMESTAMPTZ,
+  completed_by INTEGER REFERENCES parents(id) ON DELETE SET NULL
 );
 
 CREATE TABLE program_history (
@@ -86,4 +92,16 @@ CREATE TABLE rsvps (
   family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (event_id, family_id)
+);
+
+CREATE TABLE documents (
+  id SERIAL PRIMARY KEY,
+  family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+  star_id INTEGER REFERENCES stars(id) ON DELETE CASCADE,
+  todo_id INTEGER REFERENCES todos(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('form', 'upload', 'agreement')),
+  status TEXT NOT NULL CHECK (status IN ('received', 'under_review', 'accepted', 'needs_attention')),
+  submitted_at TIMESTAMPTZ NOT NULL,
+  note TEXT
 );
