@@ -1,0 +1,33 @@
+# Rules grown from retros. See docs/proposals/ for each rule's origin.
+
+[[rule]]
+id = "design-names-runtime-versions"
+stage = "design"
+check = """A design that introduces a server framework names its major \
+version and any behavior a later spec depends on, such as whether async \
+handler errors propagate."""
+origin = "Unstated Express version let the scaffold install v4; five clean reviews passed before the dropped async errors cost two fix branches."
+
+[[rule]]
+id = "fix-brief-covers-full-pipeline"
+stage = "tasks"
+paths = ["server/src/**"]
+check = """A fix brief that touches middleware registration is scoped to \
+every file that mounts something after it, not only the file with the bug."""
+origin = "The error-handler fix was scoped to app.ts and missed index.ts's later SPA fallback."
+
+[[rule]]
+id = "seed-dates-relative-to-run"
+stage = "design"
+paths = ["db/seed.sql"]
+check = """Seed data feeding a date-window query computes dates relative \
+to CURRENT_DATE, never a literal calendar date."""
+origin = "seed.sql pinned today to 2026-09-25; the dashboard test held for four days."
+
+[[rule]]
+id = "optimistic-update-has-revert"
+stage = "tasks"
+paths = ["web/src/**"]
+check = """An optimistic UI update states the revert taken when the call \
+fails, and the revert touches only the item that failed."""
+origin = "The todo toggle shipped with no revert; the first fix reverted the whole list."
