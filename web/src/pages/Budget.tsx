@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { formatCents, formatMonthDay, parseDateOnly } from "../components/format";
 
 interface Transaction {
   id: number;
@@ -16,15 +17,6 @@ interface BudgetSummary {
   spent_cents: number;
   remaining_cents: number;
   transactions: Transaction[];
-}
-
-const currency = new Intl.NumberFormat("en-US", {
-  style: "currency",
-  currency: "USD",
-});
-
-function formatCents(cents: number): string {
-  return currency.format(cents / 100);
 }
 
 type Status =
@@ -84,52 +76,63 @@ export default function Budget() {
 
   return (
     <div className="page">
-      <h1 className="page__title">Budget — FY{budget.fiscal_year}</h1>
-      <dl className="card card--hero stat-list">
-        <dt>Allocated</dt>
-        <dd>{formatCents(budget.allocated_cents)}</dd>
-        <dt>Spent</dt>
-        <dd>{formatCents(budget.spent_cents)}</dd>
-        <dt>Remaining</dt>
-        <dd>{formatCents(budget.remaining_cents)}</dd>
-      </dl>
-      {budget.allocated_cents === 0 ? (
-        <p className="empty">No allocation</p>
-      ) : (
-        <div className="progress">
-          <label htmlFor="budget-progress">Budget spent</label>
-          <progress
-            id="budget-progress"
-            value={budget.spent_cents}
-            max={budget.allocated_cents}
-          />
-          <span className="progress__value">{percentUsed.toFixed(0)}%</span>
+      <header>
+        <h1 className="page__title">Budget</h1>
+        <p className="page__lede">FY{budget.fiscal_year}</p>
+      </header>
+      <section className="card card--hero budget-hero" aria-label="Budget summary">
+        <div>
+          <p className="budget-hero__amount">{formatCents(budget.remaining_cents)}</p>
+          <p className="budget-hero__sub">
+            left to spend of {formatCents(budget.allocated_cents)} this year
+          </p>
         </div>
-      )}
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Vendor</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th className="num">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
+        {budget.allocated_cents === 0 ? (
+          <p className="empty">No allocation</p>
+        ) : (
+          <div className="progress">
+            <label htmlFor="budget-progress">Budget spent</label>
+            <progress
+              id="budget-progress"
+              value={budget.spent_cents}
+              max={budget.allocated_cents}
+            />
+            <span className="progress__value">{percentUsed.toFixed(0)}%</span>
+          </div>
+        )}
+        <ul className="legend">
+          <li className="legend__item legend__item--spent">
+            Spent <strong>{formatCents(budget.spent_cents)}</strong>
+          </li>
+          <li className="legend__item legend__item--left">
+            Left <strong>{formatCents(budget.remaining_cents)}</strong>
+          </li>
+        </ul>
+      </section>
+
+      <section className="section">
+        <h2 className="section__title">Recent activity</h2>
+        {budget.transactions.length === 0 ? (
+          <p className="empty">No spending yet.</p>
+        ) : (
+          <ul className="list">
             {budget.transactions.map((transaction) => (
-              <tr key={transaction.id}>
-                <td>{transaction.occurred_on}</td>
-                <td>{transaction.vendor}</td>
-                <td>{transaction.category}</td>
-                <td>{transaction.description}</td>
-                <td className="num">{formatCents(transaction.amount_cents)}</td>
-              </tr>
+              <li key={transaction.id} className="list__row activity">
+                <div className="activity__main">
+                  <p className="list__title">
+                    {transaction.description ?? transaction.vendor}
+                  </p>
+                  <p className="list__meta">
+                    {formatMonthDay(parseDateOnly(transaction.occurred_on))}
+                    {transaction.category && ` · ${transaction.category}`}
+                  </p>
+                </div>
+                <span className="activity__amount">{formatCents(transaction.amount_cents)}</span>
+              </li>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </ul>
+        )}
+      </section>
     </div>
   );
 }
