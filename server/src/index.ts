@@ -1,7 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
-import { app } from "./app.js";
+import { app, errorHandler } from "./app.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const webDist = path.resolve(__dirname, "../../web/dist");
@@ -16,6 +16,14 @@ app.get(/.*/, (req, res, next) => {
   }
   res.sendFile(path.join(webDist, "index.html"));
 });
+
+// Express only forwards an error to error middleware registered after the
+// handler that threw. app.ts already registers errorHandler, but that
+// registration only covers the API routes defined there — it runs before
+// the static and SPA fallback handlers added above, so an error from those
+// (e.g. ENOENT when web/dist is missing) would otherwise skip it and fall
+// through to Express's default HTML error page. Re-register it here, last.
+app.use(errorHandler);
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000;
 app.listen(port, () => {
