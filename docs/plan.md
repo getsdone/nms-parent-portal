@@ -19,7 +19,8 @@ gets its own Neon branch, cut from `main` after the scaffold seeds it:
     neonctl branches create --project-id red-rice-20195727 --name <git-branch> --output json
     neonctl connection-string --project-id red-rice-20195727 --branch <git-branch>
 
-Write that URL to the worktree's own `.env`. Delete the branch when done.
+Write that URL to the worktree's own `.env`. The head deletes the Neon branch
+after merging the git branch.
 
 Visual design is handled outside this repo. Workers build plain, functional
 markup with semantic elements and minimal CSS. No design systems, no styling
@@ -49,11 +50,16 @@ Money is integer cents. Dates are `date`, timestamps `timestamptz`.
 ## API
 
     GET   /api/family                  family + parents + stars
-    PATCH /api/family                  address, school fields, parent contacts
+    PATCH /api/family                  body, all keys optional:
+                                       { address_line1, city, state, zip,
+                                         stars:   [{ id, school_name, school_district, grade }],
+                                         parents: [{ id, name, email, phone }] }
+                                       rows matched by id within family 1; unknown id -> 404
     GET   /api/todos
     PATCH /api/todos/:id               { completed: bool }
     GET   /api/history                 all stars' program_history, newest first
-    GET   /api/budget                  { allocated, spent, remaining, transactions }
+    GET   /api/budget                  budget row with the highest fiscal_year;
+                                       { fiscal_year, allocated, spent, remaining, transactions }
     GET   /api/events                  upcoming, each with rsvped flag
     POST  /api/events/:id/rsvp
     DELETE /api/events/:id/rsvp
@@ -85,6 +91,8 @@ WP1 to WP5 parallel, one worktree each, sonnet
     WP3 budget     allocated, spent, remaining, transaction table
     WP4 history    per-star list, filter by kind
     WP5 profile    view and edit family address, star school, parent contacts
+                   files: server/routes/family.ts, web/src/pages/Profile.tsx,
+                   server/test/family.test.ts (route file follows the API path)
 
 WP6 dashboard (after WP1-5 merge, sonnet)
   server/routes/dashboard.ts, web/src/pages/Dashboard.tsx. Nudge cards link
