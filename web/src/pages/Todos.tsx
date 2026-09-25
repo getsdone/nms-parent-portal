@@ -15,6 +15,7 @@ export default function Todos() {
   async function handleToggle(id: number, completed: boolean) {
     // Optimistic update; PATCH's response (the source of truth for the
     // recomputed status) overwrites this if it lands.
+    const previousTodos = todos;
     setTodos((prev) =>
       prev.map((t) =>
         t.id === id
@@ -33,6 +34,7 @@ export default function Todos() {
       });
       setTodos((prev) => prev.map((t) => (t.id === id ? updated : t)));
     } catch (err) {
+      setTodos(previousTodos);
       setError(err instanceof Error ? err.message : String(err));
     }
   }
