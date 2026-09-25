@@ -5,8 +5,9 @@ export const ROUTES = [
   { path: "/todos", h1: "To-dos" },
   { path: "/events", h1: "Events" },
   { path: "/budget", h1: "Budget" },
-  { path: "/history", h1: "Program history" },
-  { path: "/profile", h1: "Profile" },
+  { path: "/history", h1: /^(.+’s journey|Program history)$/ },
+  { path: "/documents", h1: "Documents" },
+  { path: "/profile", h1: "Family info" },
 ] as const;
 
 /** Collects console errors and uncaught page errors, ignoring a missing favicon. */
