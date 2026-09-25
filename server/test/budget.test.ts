@@ -43,3 +43,26 @@ test("GET /api/budget returns the current fiscal year summary and transactions",
     server.close();
   }
 });
+
+// Parent id 3 (Rosa Alvarez) is the seeded caregiver in family 1.
+test("GET /api/budget?parent=3 returns 403 for a caregiver", async () => {
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as AddressInfo;
+    const res = await fetch(`http://127.0.0.1:${port}/api/budget?parent=3`);
+    assert.equal(res.status, 403);
+  } finally {
+    server.close();
+  }
+});
+
+test("GET /api/budget?parent=1 still succeeds for a guardian", async () => {
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as AddressInfo;
+    const res = await fetch(`http://127.0.0.1:${port}/api/budget?parent=1`);
+    assert.equal(res.status, 200);
+  } finally {
+    server.close();
+  }
+});

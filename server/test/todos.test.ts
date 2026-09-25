@@ -8,6 +8,8 @@ interface Todo {
   due_date: string | null;
   required: boolean;
   completed_at: string | null;
+  completed_by: number | null;
+  completed_by_name: string | null;
   status: "done" | "overdue" | "due_soon" | "upcoming";
 }
 
@@ -87,6 +89,42 @@ test("PATCH /api/todos/:id toggles completion and restores it", async () => {
     assert.equal(restored.id, 6);
     assert.equal(restored.completed_at, null);
     assert.equal(restored.status, "upcoming");
+  });
+});
+
+// Elena Rivera (parent id 1) is a guardian in family 1's seed data.
+test("PATCH /api/todos/:id with parent_id records completed_by_name, then undo clears it", async () => {
+  await withServer(async (base) => {
+    const complete = await fetch(`${base}/api/todos/6`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: true, parent_id: 1 }),
+    });
+    assert.equal(complete.status, 200);
+    const completed = (await complete.json()) as Todo;
+    assert.equal(completed.completed_by, 1);
+    assert.equal(completed.completed_by_name, "Elena Rivera");
+
+    const undo = await fetch(`${base}/api/todos/6`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: false }),
+    });
+    assert.equal(undo.status, 200);
+    const restored = (await undo.json()) as Todo;
+    assert.equal(restored.completed_by, null);
+    assert.equal(restored.completed_by_name, null);
+  });
+});
+
+test("PATCH /api/todos/:id with a parent_id outside family 1 returns 404", async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/todos/6`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: true, parent_id: 9999 }),
+    });
+    assert.equal(res.status, 404);
   });
 });
 

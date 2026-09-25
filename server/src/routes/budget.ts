@@ -5,7 +5,24 @@ const router = Router();
 
 const FAMILY_ID = 1;
 
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
+  const { parent } = req.query;
+  if (parent !== undefined) {
+    const parentId = Number(parent);
+    if (typeof parent !== "string" || !Number.isInteger(parentId) || parentId <= 0) {
+      res.status(400).json({ error: "parent must be a positive integer" });
+      return;
+    }
+    const roleResult = await pool.query<{ role: string }>(
+      "SELECT role FROM parents WHERE id = $1 AND family_id = $2",
+      [parentId, FAMILY_ID],
+    );
+    if (roleResult.rows[0]?.role === "caregiver") {
+      res.status(403).json({ error: "caregivers cannot view the budget" });
+      return;
+    }
+  }
+
   const budgetResult = await pool.query<{
     fiscal_year: number;
     allocated_cents: number;
