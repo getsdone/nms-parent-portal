@@ -83,13 +83,13 @@ export default function Profile() {
   }
 
   if (!family) {
-    return status === "error" ? <p>{error}</p> : <p>Loading...</p>;
+    return status === "error" ? <p className="alert">{error}</p> : <p className="notice">Loading...</p>;
   }
 
   return (
-    <div>
-      <h1>Profile</h1>
-      <form onSubmit={handleSubmit}>
+    <div className="page">
+      <h1 className="page__title">Profile</h1>
+      <form className="form" onSubmit={handleSubmit}>
         <AddressFields family={family} onChange={updateAddress} />
         {family.parents.map((parent) => (
           <ParentFields
@@ -105,11 +105,13 @@ export default function Profile() {
             onChange={(field, value) => updateStar(star.id, field, value)}
           />
         ))}
-        <button type="submit" disabled={status === "saving"}>
-          Save
-        </button>
-        {status === "saved" && <p>Saved</p>}
-        {status === "error" && error && <p>{error}</p>}
+        <div className="form__actions">
+          <button className="btn btn--primary" type="submit" disabled={status === "saving"}>
+            Save
+          </button>
+          {status === "saved" && <p className="notice notice--success">Saved</p>}
+          {status === "error" && error && <p className="alert">{error}</p>}
+        </div>
       </form>
     </div>
   );

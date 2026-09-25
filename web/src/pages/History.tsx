@@ -32,12 +32,12 @@ export default function History() {
   }, [kind]);
 
   return (
-    <div>
-      <h1>Program history</h1>
-      <fieldset>
+    <div className="page">
+      <h1 className="page__title">Program history</h1>
+      <fieldset className="segmented">
         <legend>Filter</legend>
         {FILTERS.map((filter) => (
-          <label key={filter.label}>
+          <label key={filter.label} className="segmented__option">
             <input
               type="radio"
               name="history-kind"
@@ -48,8 +48,8 @@ export default function History() {
           </label>
         ))}
       </fieldset>
-      {error ? <p>{error}</p> : null}
-      {!error && !data ? <p>Loading…</p> : null}
+      {error ? <p className="alert">{error}</p> : null}
+      {!error && !data ? <p className="notice">Loading…</p> : null}
       {data?.stars.map((star) => (
         <StarHistorySection key={star.id} star={star} />
       ))}

@@ -1,3 +1,5 @@
+import { formatEventWhen, formatMonthShort } from "../format";
+
 export type EventKind = "virtual" | "in_person";
 
 export interface EventRecord {
@@ -12,15 +14,6 @@ export interface EventRecord {
   rsvped: boolean;
 }
 
-const dateTimeFormat = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
-
-function formatDateTime(iso: string): string {
-  return dateTimeFormat.format(new Date(iso));
-}
-
 interface EventCardProps {
   event: EventRecord;
   onToggleRsvp: (event: EventRecord) => void;
@@ -28,17 +21,40 @@ interface EventCardProps {
 }
 
 export default function EventCard({ event, onToggleRsvp, pending }: EventCardProps) {
+  const start = new Date(event.starts_at);
   return (
-    <article>
-      <h3>{event.title}</h3>
-      <p>{event.kind === "virtual" ? "Virtual" : "In person"}</p>
-      <p>{formatDateTime(event.starts_at)}</p>
-      {event.location && <p>{event.location}</p>}
-      {event.description && <p>{event.description}</p>}
-      {event.rsvp_deadline && <p>RSVP by {formatDateTime(event.rsvp_deadline)}</p>}
-      <button type="button" onClick={() => onToggleRsvp(event)} disabled={pending}>
-        {event.rsvped ? "Cancel RSVP" : "RSVP"}
-      </button>
-    </article>
+    <li className="list__row event">
+      <span className={`date-tile${event.rsvped ? " date-tile--going" : ""}`} aria-hidden="true">
+        <span className="date-tile__month">{formatMonthShort(start)}</span>
+        <span className="date-tile__day">{start.getDate()}</span>
+      </span>
+      <div className="event__main">
+        <h3 className="list__title">{event.title}</h3>
+        <p className="list__meta">
+          {formatEventWhen(event.starts_at)} · {event.kind === "virtual" ? "Virtual" : "In person"}
+        </p>
+      </div>
+      {event.rsvped ? (
+        <button
+          type="button"
+          className="pill pill--going"
+          onClick={() => onToggleRsvp(event)}
+          disabled={pending}
+          aria-label={`Going to ${event.title}. Cancel RSVP`}
+          title="Cancel RSVP"
+        >
+          ★ Going
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn btn--small btn--primary"
+          onClick={() => onToggleRsvp(event)}
+          disabled={pending}
+        >
+          RSVP
+        </button>
+      )}
+    </li>
   );
 }

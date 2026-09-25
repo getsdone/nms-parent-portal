@@ -7,9 +7,9 @@ interface Props {
 
 export default function ParentFields({ parent, onChange }: Props) {
   return (
-    <fieldset>
+    <fieldset className="fieldset">
       <legend>{parent.is_primary ? "Primary parent" : "Parent"}</legend>
-      <label>
+      <label className="field">
         Name
         <input
           type="text"
@@ -17,7 +17,7 @@ export default function ParentFields({ parent, onChange }: Props) {
           onChange={(e) => onChange("name", e.target.value)}
         />
       </label>
-      <label>
+      <label className="field">
         Email
         <input
           type="email"
@@ -25,7 +25,7 @@ export default function ParentFields({ parent, onChange }: Props) {
           onChange={(e) => onChange("email", e.target.value)}
         />
       </label>
-      <label>
+      <label className="field">
         Phone
         <input
           type="tel"

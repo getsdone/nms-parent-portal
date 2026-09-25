@@ -17,11 +17,11 @@ interface EventNudgeCardProps {
 
 export default function EventNudgeCard({ title, detail }: EventNudgeCardProps) {
   return (
-    <article>
-      <h3>
+    <article className="nudge">
+      <h3 className="nudge__title">
         <Link to="/events">{title}</Link>
       </h3>
-      <p>{detail}</p>
+      <p className="nudge__meta">{detail}</p>
     </article>
   );
 }
