@@ -1,0 +1,25 @@
+{
+  "name": "nms-parent-portal",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "web",
+    "server"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace web",
+    "dev:server": "tsx watch server/src/index.ts",
+    "dev": "echo 'Run in two terminals: npm run dev:web  and  npm run dev:server'",
+    "build": "npm run build --workspace web && tsc -p server/tsconfig.json --noEmit",
+    "start": "tsx server/src/index.ts",
+    "test": "tsx --test server/test/*.test.ts",
+    "db:apply": "tsx db/apply.ts"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "dotenv": "^16.4.5",
+    "pg": "^8.13.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
