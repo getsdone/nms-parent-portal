@@ -1,3 +1,4 @@
+import { firstName } from "../../star";
 import { daysFromToday, formatMonthDay, parseDateOnly, plural } from "../format";
 
 export interface Todo {
@@ -8,6 +9,8 @@ export interface Todo {
   due_date: string | null;
   required: boolean;
   completed_at: string | null;
+  completed_by: number | null;
+  completed_by_name: string | null;
   status: "done" | "overdue" | "due_soon" | "upcoming";
 }
 
@@ -41,6 +44,12 @@ export default function TodoItem({ todo, onToggle }: TodoItemProps) {
           {todo.required && <span className="badge badge--required badge--tiny">Required</span>}
         </label>
         {due && <p className="todo__due">{due}</p>}
+        {todo.status === "done" && todo.completed_by_name && (
+          <p className="todo__due">
+            Done by {firstName(todo.completed_by_name)}
+            {todo.completed_at && ` · ${formatMonthDay(new Date(todo.completed_at))}`}
+          </p>
+        )}
         {todo.description && <p className="list__body">{todo.description}</p>}
       </div>
       {todo.link && (

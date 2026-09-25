@@ -7,7 +7,7 @@ export default function Todos() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
-  const { star, ready } = useStar();
+  const { star, ready, actingParent } = useStar();
   const starId = star?.id;
 
   useEffect(() => {
@@ -37,6 +37,8 @@ export default function Todos() {
               ...t,
               status: completed ? "done" : "upcoming",
               completed_at: completed ? new Date().toISOString() : null,
+              completed_by: completed ? (actingParent?.id ?? null) : null,
+              completed_by_name: completed ? (actingParent?.name ?? null) : null,
             }
           : t,
       ),
@@ -44,7 +46,7 @@ export default function Todos() {
     try {
       const updated = await api<Todo>(`/todos/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ completed }),
+        body: JSON.stringify({ completed, parent_id: actingParent?.id }),
       });
       setTodos((prev) => prev.map((t) => (t.id === id ? updated : t)));
     } catch (err) {

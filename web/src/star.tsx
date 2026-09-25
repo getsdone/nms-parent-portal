@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { api } from "./api";
-import type { Family, Star } from "./components/profile/types";
+import type { Family, Parent, Star } from "./components/profile/types";
 
 const STORAGE_KEY = "nms.star";
+const PARENT_STORAGE_KEY = "nms.parent";
 
 interface StarContextValue {
   /** The selected Star, or null until /api/family loads (or if it has no Stars). */
@@ -18,13 +19,19 @@ interface StarContextValue {
    * they fetch once with ?star= instead of once without and again with it.
    */
   ready: boolean;
+  /**
+   * The parent the prototype acts as, standing in for a signed-in user.
+   * Null until /api/family loads. Every write sends its id.
+   */
+  actingParent: Parent | null;
+  setActingParent: (id: number) => void;
 }
 
 const StarContext = createContext<StarContextValue | null>(null);
 
-function readStoredId(): number | null {
+function readStoredId(key: string = STORAGE_KEY): number | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     const id = raw === null ? NaN : Number(raw);
     return Number.isInteger(id) ? id : null;
   } catch {
@@ -35,7 +42,8 @@ function readStoredId(): number | null {
 export function StarProvider({ children }: { children: ReactNode }) {
   const [family, setFamily] = useState<Family | null>(null);
   const [familyError, setFamilyError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(readStoredId);
+  const [selectedId, setSelectedId] = useState<number | null>(() => readStoredId());
+  const [parentId, setParentId] = useState<number | null>(() => readStoredId(PARENT_STORAGE_KEY));
 
   useEffect(() => {
     api<Family>("/family")
@@ -52,13 +60,30 @@ export function StarProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const setActingParent = useCallback((id: number) => {
+    setParentId(id);
+    try {
+      localStorage.setItem(PARENT_STORAGE_KEY, String(id));
+    } catch {
+      // Blocked storage: the choice lasts for this visit only.
+    }
+  }, []);
+
   const stars = family?.stars ?? [];
+  const parents = family?.parents ?? [];
+  // A stored id that no longer matches a parent falls back to the primary guardian.
+  const actingParent =
+    parents.find((p) => p.id === parentId) ??
+    parents.find((p) => p.is_primary && p.role === "guardian") ??
+    parents.find((p) => p.role === "guardian") ??
+    parents[0] ??
+    null;
   // A stored id that no longer matches a Star falls back to the first one.
   const star = stars.find((s) => s.id === selectedId) ?? stars[0] ?? null;
   const ready = family !== null || familyError !== null;
 
   return (
-    <StarContext.Provider value={{ star, stars, setStar, family, setFamily, familyError, ready }}>
+    <StarContext.Provider value={{ star, stars, setStar, family, setFamily, familyError, ready, actingParent, setActingParent }}>
       {children}
     </StarContext.Provider>
   );
@@ -77,4 +102,18 @@ export function useStar(): StarContextValue {
 export function withStar(path: string, starId: number | null | undefined): string {
   if (starId == null) return path;
   return `${path}${path.includes("?") ? "&" : "?"}star=${starId}`;
+}
+
+export function isCaregiver(parent: Parent | null | undefined): boolean {
+  return parent?.role === "caregiver";
+}
+
+/** Adds parent=<id> to an API path so the server can check the acting parent's rights. */
+export function withParent(path: string, parentId: number | null | undefined): string {
+  if (parentId == null) return path;
+  return `${path}${path.includes("?") ? "&" : "?"}parent=${parentId}`;
+}
+
+export function firstName(name: string): string {
+  return name.trim().split(/\s+/)[0] || name;
 }

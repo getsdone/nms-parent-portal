@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { formatCents, formatMonthDay, parseDateOnly } from "../components/format";
+import { useStar, withParent } from "../star";
 
 interface Transaction {
   id: number;
@@ -27,11 +28,20 @@ type Status =
 
 export default function Budget() {
   const [status, setStatus] = useState<Status>({ kind: "loading" });
+  const { ready, actingParent } = useStar();
+  const parentId = actingParent?.id;
 
   useEffect(() => {
-    api<BudgetSummary>("/budget")
-      .then((budget) => setStatus({ kind: "ready", budget }))
+    // Wait for the acting parent so a caregiver gets the API's 403 message.
+    if (!ready) return;
+    let cancelled = false;
+    setStatus({ kind: "loading" });
+    api<BudgetSummary>(withParent("/budget", parentId))
+      .then((budget) => {
+        if (!cancelled) setStatus({ kind: "ready", budget });
+      })
       .catch((err: unknown) => {
+        if (cancelled) return;
         const message = err instanceof Error ? err.message : String(err);
         if (message.includes("404")) {
           setStatus({ kind: "not-found" });
@@ -39,7 +49,10 @@ export default function Budget() {
           setStatus({ kind: "error", message });
         }
       });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, parentId]);
 
   if (status.kind === "loading") {
     return (
