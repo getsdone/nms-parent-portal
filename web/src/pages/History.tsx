@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { HistoryKind, HistoryResponse } from "../components/history/HistoryTypes";
 import StarHistorySection from "../components/history/StarHistorySection";
+import { useStar, withStar } from "../star";
 
 const FILTERS: { label: string; kind: HistoryKind | null }[] = [
   { label: "All", kind: null },
@@ -14,12 +15,15 @@ export default function History() {
   const [kind, setKind] = useState<HistoryKind | null>(null);
   const [data, setData] = useState<HistoryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { star, ready } = useStar();
+  const starId = star?.id;
 
   useEffect(() => {
+    if (!ready) return;
     let cancelled = false;
     setError(null);
     const query = kind ? `?kind=${kind}` : "";
-    api<HistoryResponse>(`/history${query}`)
+    api<HistoryResponse>(withStar(`/history${query}`, starId))
       .then((res) => {
         if (!cancelled) setData(res);
       })
@@ -29,11 +33,13 @@ export default function History() {
     return () => {
       cancelled = true;
     };
-  }, [kind]);
+  }, [kind, ready, starId]);
 
   return (
     <div className="page">
-      <h1 className="page__title">Program history</h1>
+      <h1 className="page__title">
+        {star ? `${star.first_name}’s journey` : "Program history"}
+      </h1>
       <fieldset className="segmented">
         <legend>Filter</legend>
         {FILTERS.map((filter) => (
