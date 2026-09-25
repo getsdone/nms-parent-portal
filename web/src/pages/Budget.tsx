@@ -27,17 +27,56 @@ function formatCents(cents: number): string {
   return currency.format(cents / 100);
 }
 
+type Status =
+  | { kind: "loading" }
+  | { kind: "error"; message: string }
+  | { kind: "not-found" }
+  | { kind: "ready"; budget: BudgetSummary };
+
 export default function Budget() {
-  const [budget, setBudget] = useState<BudgetSummary | null>(null);
+  const [status, setStatus] = useState<Status>({ kind: "loading" });
 
   useEffect(() => {
-    api<BudgetSummary>("/budget").then(setBudget);
+    api<BudgetSummary>("/budget")
+      .then((budget) => setStatus({ kind: "ready", budget }))
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        if (message.includes("404")) {
+          setStatus({ kind: "not-found" });
+        } else {
+          setStatus({ kind: "error", message });
+        }
+      });
   }, []);
 
-  if (!budget) {
-    return <h1>Budget</h1>;
+  if (status.kind === "loading") {
+    return (
+      <div>
+        <h1>Budget</h1>
+        <p>Loading…</p>
+      </div>
+    );
   }
 
+  if (status.kind === "not-found") {
+    return (
+      <div>
+        <h1>Budget</h1>
+        <p>No budget on file for this family.</p>
+      </div>
+    );
+  }
+
+  if (status.kind === "error") {
+    return (
+      <div>
+        <h1>Budget</h1>
+        <p>{status.message}</p>
+      </div>
+    );
+  }
+
+  const budget = status.budget;
   const percentUsed =
     budget.allocated_cents === 0
       ? 0
@@ -54,9 +93,19 @@ export default function Budget() {
         <dt>Remaining</dt>
         <dd>{formatCents(budget.remaining_cents)}</dd>
       </dl>
-      <progress value={budget.spent_cents} max={budget.allocated_cents}>
-        {percentUsed.toFixed(0)}%
-      </progress>
+      {budget.allocated_cents === 0 ? (
+        <p>No allocation</p>
+      ) : (
+        <>
+          <label htmlFor="budget-progress">Budget spent</label>
+          <progress
+            id="budget-progress"
+            value={budget.spent_cents}
+            max={budget.allocated_cents}
+          />
+          <span>{percentUsed.toFixed(0)}%</span>
+        </>
+      )}
       <table>
         <thead>
           <tr>
