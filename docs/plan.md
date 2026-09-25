@@ -108,3 +108,54 @@ WP7 deploy (head, no code)
     1:05-1:30  merge, WP6
     1:30-1:45  deploy, reviewer pass
     1:45-2:00  README, push
+
+## WP7: star context, family info, nudge banner (added after the design review)
+
+The design scopes the portal to one Star at a time, chosen by a switcher in
+the header, and presents the profile as "Family info" with read-only rows
+and an Edit control per section. The build had one Star and one edit form.
+
+### Data model changes
+
+    stars     + math_teacher TEXT, counselor_email TEXT
+    parents   + preferred_language TEXT
+    todos     + star_id INTEGER NULL REFERENCES stars(id) ON DELETE CASCADE
+              null means the whole family
+
+Seed: a second Star (Leo, grade 4, same school) with 4 todos (2 overdue
+required, 1 due soon, 1 done) and 3 program_history rows. Existing todos
+get star_id = 1 except the two family-wide ones (survey, W-9). Second
+parent stays as the "Second guardian". Budget stays family-level; the
+schema has no per-star budget and the page says "Family budget".
+
+### API changes
+
+    GET /api/todos?star=<id>       rows where star_id = id OR star_id IS NULL
+    GET /api/dashboard?star=<id>   same filter for the todo nudges; events
+                                   and budget unchanged
+    GET /api/family                stars gain math_teacher, counselor_email;
+                                   parents gain preferred_language
+    PATCH /api/family              accepts those fields, same rules
+    GET /api/history?star=<id>     already per star; add the filter
+
+`star` absent means all Stars, which keeps every existing test valid.
+
+### Frontend
+
+- Header: one pill per Star (initial in a circle plus first name), active
+  one navy. Selection lives in localStorage and a React context; every
+  page reads it and passes ?star=.
+- Nav "To-dos" shows a coral count badge of overdue required todos for the
+  selected Star, from /api/dashboard.
+- Non-home pages show a coral banner "N overdue items for <Star>. Finish
+  now" linking to /todos when N > 0.
+- Profile becomes "Family info": sections You, Home address, <Star>'s
+  school, Second guardian. Each section is read-only label/value rows with
+  an Edit link that swaps the section to its existing form fields and a
+  Save. School section shows only the selected Star.
+- History page title becomes "<Star>'s journey"; To-dos subtitle "For
+  <Star> · <done> of <total> done this year"; Dashboard "Here's what
+  matters for <Star> today."
+
+Out of scope, stated: account menu, Settings, Star view, Pinbook, Help and
+guides, "Idea from" advice rows, second-guardian invite.
