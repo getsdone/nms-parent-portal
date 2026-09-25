@@ -12,8 +12,18 @@ Postgres on Neon. No auth: the server acts as family 1.
     db/       schema.sql, seed.sql, apply.ts (drops and recreates; prototype).
 
 Tests: `node --test` against a running server with `DATABASE_URL` pointing at
-a Neon branch. Every worktree gets its own Neon branch, named after the git
-branch, created from `main` after the scaffold seeds it.
+a Neon branch. Neon project `red-rice-20195727` (org GetSDone). The main
+tree's `.env` holds the `main` branch URL and is gitignored. Every worktree
+gets its own Neon branch, cut from `main` after the scaffold seeds it:
+
+    neonctl branches create --project-id red-rice-20195727 --name <git-branch> --output json
+    neonctl connection-string --project-id red-rice-20195727 --branch <git-branch>
+
+Write that URL to the worktree's own `.env`. Delete the branch when done.
+
+Visual design is handled outside this repo. Workers build plain, functional
+markup with semantic elements and minimal CSS. No design systems, no styling
+libraries, no time on looks.
 
 Skipped: auth, Zoho/Ramp/QuickBooks sync, every "could" feature. The README
 says where a sync job replaces `db/seed.sql`.
@@ -69,11 +79,11 @@ WP1 to WP5 parallel, one worktree each, sonnet
   Each fills exactly: server/routes/<x>.ts, web/src/pages/<X>.tsx,
   server/test/<x>.test.ts. May add small components under web/src/components/<x>/.
   Nothing else.
-    WP1 todos      list grouped by overdue / due soon / done, toggle persists
-    WP2 events     browse with virtual/in-person filter, RSVP toggle,
-                   "you're going" section at top
-    WP3 budget     remaining number, percent bar, transaction table by category
-    WP4 history    timeline per star, filter by kind
+    WP1 todos      list with overdue/due-soon/done state, toggle persists
+    WP2 events     list with virtual/in-person filter, RSVP toggle,
+                   RSVP'd events listed first
+    WP3 budget     allocated, spent, remaining, transaction table
+    WP4 history    per-star list, filter by kind
     WP5 profile    view and edit family address, star school, parent contacts
 
 WP6 dashboard (after WP1-5 merge, sonnet)
