@@ -4,9 +4,9 @@ import AddressFields, { type AddressField } from "../components/profile/AddressF
 import ParentFields, { type ParentField } from "../components/profile/ParentFields";
 import StarFields, { type StarField } from "../components/profile/StarFields";
 import type { Family, Parent, Star } from "../components/profile/types";
-import { useStar } from "../star";
+import { isCaregiver, useStar, withParent } from "../star";
 
-type SectionKey = "you" | "address" | "school" | "guardian";
+type SectionKey = `parent-${number}` | "address" | "school";
 
 function ordinal(n: number): string {
   const mod100 = n % 100;
@@ -30,14 +30,10 @@ function parentPatch(p: Parent) {
 }
 
 /** PATCH body for one section only, in the existing /api/family shape. */
-function patchBody(section: SectionKey, draft: Family, star: Star | undefined, guardian: Parent | undefined, primary: Parent | undefined) {
+function patchBody(section: SectionKey, draft: Family, star: Star | undefined) {
   switch (section) {
     case "address":
       return { address_line1: draft.address_line1, city: draft.city, state: draft.state, zip: draft.zip };
-    case "you":
-      return primary ? { parents: [parentPatch(primary)] } : {};
-    case "guardian":
-      return guardian ? { parents: [parentPatch(guardian)] } : {};
     case "school":
       return star
         ? {
@@ -53,11 +49,15 @@ function patchBody(section: SectionKey, draft: Family, star: Star | undefined, g
             ],
           }
         : {};
+    default: {
+      const parent = draft.parents.find((p) => `parent-${p.id}` === section);
+      return parent ? { parents: [parentPatch(parent)] } : {};
+    }
   }
 }
 
 interface SectionProps {
-  title: string;
+  title: ReactNode;
   editing: boolean;
   saving: boolean;
   canEdit: boolean;
@@ -129,7 +129,7 @@ function parentRows(p: Parent): [string, string][] {
 }
 
 export default function Profile() {
-  const { family, setFamily, familyError, star: selectedStar } = useStar();
+  const { family, setFamily, familyError, star: selectedStar, actingParent } = useStar();
   const [editing, setEditing] = useState<SectionKey | null>(null);
   const [draft, setDraft] = useState<Family | null>(null);
   const [saving, setSaving] = useState(false);
@@ -153,8 +153,6 @@ export default function Profile() {
 
   // Read mode shows the saved family; edit mode shows the draft for the open section.
   const view = editing && draft ? draft : family;
-  const primary = view.parents.find((p) => p.is_primary) ?? view.parents[0];
-  const guardian = view.parents.find((p) => p.id !== primary?.id);
   const star = view.stars.find((s) => s.id === selectedStar?.id);
 
   function startEdit(section: SectionKey) {
@@ -203,9 +201,9 @@ export default function Profile() {
     setSaving(true);
     setError(null);
     try {
-      const updated = await api<Family>("/family", {
+      const updated = await api<Family>(withParent("/family", actingParent?.id), {
         method: "PATCH",
-        body: JSON.stringify(patchBody(section, draft, star, guardian, primary)),
+        body: JSON.stringify(patchBody(section, draft, star)),
       });
       setFamily(updated);
       setEditing(null);
@@ -218,12 +216,19 @@ export default function Profile() {
     }
   }
 
+  // A caregiver may edit only their own contact card; the API enforces the same rule with 403.
+  const caregiver = isCaregiver(actingParent);
+  function allowed(section: SectionKey): boolean {
+    if (!caregiver) return true;
+    return section === `parent-${actingParent?.id}`;
+  }
+
   function sectionProps(section: SectionKey) {
     return {
       editing: editing === section,
       saving,
       // One section edits at a time, so a Save only ever sends that section's draft.
-      canEdit: editing === null,
+      canEdit: editing === null && allowed(section),
       onEdit: () => startEdit(section),
       onCancel: cancelEdit,
       onSave: () => save(section),
@@ -239,16 +244,25 @@ export default function Profile() {
         <p className="page__lede">Keep this current so we can reach you.</p>
       </header>
 
-      {primary && (
-        <InfoSection
-          title="You"
-          rows={parentRows(primary)}
-          fields={
-            <ParentFields parent={primary} onChange={(field, value) => updateParent(primary.id, field, value)} />
-          }
-          {...sectionProps("you")}
-        />
-      )}
+      <section className="section">
+        <h2 className="section__title">Guardians and caregivers</h2>
+        {view.parents.map((p) => (
+          <InfoSection
+            key={p.id}
+            title={
+              <>
+                {p.name}
+                <span className={`badge badge--tiny ${p.role === "guardian" ? "badge--done" : "badge--due-soon"}`}>
+                  {p.role === "guardian" ? "Guardian" : "Caregiver"}
+                </span>
+              </>
+            }
+            rows={parentRows(p)}
+            fields={<ParentFields parent={p} onChange={(field, value) => updateParent(p.id, field, value)} />}
+            {...sectionProps(`parent-${p.id}`)}
+          />
+        ))}
+      </section>
 
       <InfoSection
         title="Home address"
@@ -277,23 +291,6 @@ export default function Profile() {
         />
       )}
 
-      {guardian ? (
-        <InfoSection
-          title="Second guardian"
-          rows={parentRows(guardian)}
-          fields={
-            <ParentFields parent={guardian} onChange={(field, value) => updateParent(guardian.id, field, value)} />
-          }
-          {...sectionProps("guardian")}
-        />
-      ) : (
-        <section className="info-card">
-          <div className="info-card__head">
-            <h2 className="info-card__title">Second guardian</h2>
-          </div>
-          <p className="notice">No second guardian on file</p>
-        </section>
-      )}
     </div>
   );
 }

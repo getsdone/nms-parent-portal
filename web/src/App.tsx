@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation } from "react-router-dom";
 import { api } from "./api";
 import type { DashboardData } from "./components/dashboard/types";
-import { useStar, withStar } from "./star";
+import { firstName, isCaregiver, useStar, withStar } from "./star";
 import Dashboard from "./pages/Dashboard";
 import Todos from "./pages/Todos";
 import Events from "./pages/Events";
@@ -37,6 +37,29 @@ function StarSwitcher() {
   );
 }
 
+/** Stands in for the account menu until the portal has sign-in. */
+function ActingAs() {
+  const { family, actingParent, setActingParent } = useStar();
+  const parents = family?.parents ?? [];
+  if (parents.length === 0 || !actingParent) return null;
+  return (
+    <label className="acting-as">
+      <span className="acting-as__label">Acting as</span>
+      <select
+        className="acting-as__select"
+        value={actingParent.id}
+        onChange={(e) => setActingParent(Number(e.target.value))}
+      >
+        {parents.map((p) => (
+          <option key={p.id} value={p.id}>
+            {firstName(p.name)} · {p.role}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
 /**
  * Overdue required to-dos for the selected Star. Refetches on Star change
  * and on every route change, so completing a to-do updates the badge once
@@ -68,8 +91,9 @@ function useOverdueCount(): number {
 }
 
 export default function App() {
-  const { star } = useStar();
+  const { star, actingParent } = useStar();
   const { pathname } = useLocation();
+  const caregiver = isCaregiver(actingParent);
   const overdue = useOverdueCount();
   const showBanner = overdue > 0 && pathname !== "/" && pathname !== "/todos";
 
@@ -111,11 +135,13 @@ export default function App() {
                   Events
                 </NavLink>
               </li>
-              <li>
-                <NavLink className="nav__link" to="/budget">
-                  Budget
-                </NavLink>
-              </li>
+              {!caregiver && (
+                <li>
+                  <NavLink className="nav__link" to="/budget">
+                    Budget
+                  </NavLink>
+                </li>
+              )}
               <li>
                 <NavLink className="nav__link" to="/history">
                   History
@@ -129,6 +155,7 @@ export default function App() {
             </ul>
           </nav>
           <StarSwitcher />
+          <ActingAs />
         </div>
       </header>
       {showBanner && (

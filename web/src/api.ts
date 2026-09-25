@@ -5,7 +5,15 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!res.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${path} failed: ${res.status}`);
+    // The API answers errors with { error: "..." }; show that reason when present.
+    let reason = "";
+    try {
+      const body = (await res.json()) as { error?: unknown };
+      if (typeof body.error === "string") reason = ` (${body.error})`;
+    } catch {
+      // Not JSON; the status code alone has to do.
+    }
+    throw new Error(`${init?.method ?? "GET"} ${path} failed: ${res.status}${reason}`);
   }
   return res.json() as Promise<T>;
 }

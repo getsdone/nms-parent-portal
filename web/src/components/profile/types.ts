@@ -1,3 +1,5 @@
+export type ParentRole = "guardian" | "caregiver";
+
 export interface Parent {
   id: number;
   name: string;
@@ -5,6 +7,7 @@ export interface Parent {
   phone: string | null;
   preferred_language: string | null;
   is_primary: boolean;
+  role: ParentRole;
 }
 
 export interface Star {
