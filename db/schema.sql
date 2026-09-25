@@ -1,5 +1,5 @@
 -- Prototype schema: dropped and recreated on every db:apply run.
-DROP TABLE IF EXISTS rsvps, events, budget_transactions, budgets,
+DROP TABLE IF EXISTS documents, rsvps, events, budget_transactions, budgets,
   program_history, todos, stars, parents, families CASCADE;
 
 CREATE TABLE families (
@@ -90,4 +90,16 @@ CREATE TABLE rsvps (
   family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   PRIMARY KEY (event_id, family_id)
+);
+
+CREATE TABLE documents (
+  id SERIAL PRIMARY KEY,
+  family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+  star_id INTEGER REFERENCES stars(id) ON DELETE CASCADE,
+  todo_id INTEGER REFERENCES todos(id) ON DELETE SET NULL,
+  title TEXT NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('form', 'upload', 'agreement')),
+  status TEXT NOT NULL CHECK (status IN ('received', 'under_review', 'accepted', 'needs_attention')),
+  submitted_at TIMESTAMPTZ NOT NULL,
+  note TEXT
 );

@@ -93,3 +93,15 @@ SELECT setval('events_id_seq', (SELECT MAX(id) FROM events));
 INSERT INTO rsvps (event_id, family_id) VALUES
   (1, 1),
   (3, 1);
+
+-- documents: 6 rows across both stars (plus one family-wide, star_id NULL)
+-- and all 4 statuses. Two rows link to todos that are seeded completed
+-- above (ids 7 and 8, "RSVP to welcome call" and "Update emergency
+-- contact", both Sofia's/star_id 1) via todo_id.
+INSERT INTO documents (family_id, star_id, todo_id, title, kind, status, submitted_at, note) VALUES
+  (1, 1, 7, 'Welcome Call RSVP Confirmation', 'form', 'accepted', now() - interval '58 days', NULL),
+  (1, 1, 8, 'Emergency Contact Update Form', 'form', 'accepted', now() - interval '19 days', NULL),
+  (1, 1, NULL, 'MATHCOUNTS Registration Upload', 'upload', 'under_review', now() - interval '10 days', 'Waiting on chapter coordinator confirmation.'),
+  (1, 2, NULL, 'Grade Level Proof', 'upload', 'needs_attention', now() - interval '5 days', 'Photo was blurry; please re-upload a clear copy.'),
+  (1, 2, NULL, 'Math Circle Participation Agreement', 'agreement', 'received', now() - interval '2 days', NULL),
+  (1, NULL, NULL, 'Program Photo Release', 'agreement', 'received', now() - interval '40 days', NULL);

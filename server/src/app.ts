@@ -5,6 +5,7 @@ import historyRouter from "./routes/history.js";
 import budgetRouter from "./routes/budget.js";
 import eventsRouter from "./routes/events.js";
 import dashboardRouter from "./routes/dashboard.js";
+import documentsRouter from "./routes/documents.js";
 
 // Every feature router is registered here so later workers only ever edit
 // their own server/src/routes/<name>.ts file, never this one.
@@ -22,6 +23,7 @@ app.use("/api/history", historyRouter);
 app.use("/api/budget", budgetRouter);
 app.use("/api/events", eventsRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/documents", documentsRouter);
 
 // Unmatched /api paths get a JSON 404 instead of falling through to the
 // SPA fallback registered later in index.ts.
