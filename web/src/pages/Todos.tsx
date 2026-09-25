@@ -5,6 +5,7 @@ import TodoItem, { type Todo } from "../components/todos/TodoItem";
 export default function Todos() {
   const [todos, setTodos] = useState<Todo[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showDone, setShowDone] = useState(false);
 
   useEffect(() => {
     api<Todo[]>("/todos")
@@ -43,55 +44,65 @@ export default function Todos() {
     }
   }
 
-  const overdue = todos.filter((t) => t.status === "overdue");
-  const dueSoonOrUpcoming = todos.filter(
-    (t) => t.status === "due_soon" || t.status === "upcoming",
-  );
   const done = todos.filter((t) => t.status === "done");
+  const open = todos.filter((t) => t.status !== "done");
+  const percentDone = todos.length === 0 ? 0 : (done.length / todos.length) * 100;
 
   return (
-    <div>
-      <h1>To-dos</h1>
-      {error && <p role="alert">{error}</p>}
+    <div className="page">
+      <header>
+        <h1 className="page__title">To-dos</h1>
+        {todos.length > 0 && (
+          <p className="page__lede">
+            {done.length} of {todos.length} done this year
+          </p>
+        )}
+      </header>
+      {error && <p className="alert" role="alert">{error}</p>}
 
-      <section>
-        <h2>Overdue</h2>
-        {overdue.length === 0 ? (
-          <p>Nothing overdue.</p>
+      <div className="section">
+        {todos.length > 0 && (
+          <div
+            className="thin-bar"
+            role="progressbar"
+            aria-label="To-dos done this year"
+            aria-valuemin={0}
+            aria-valuemax={todos.length}
+            aria-valuenow={done.length}
+          >
+            <span className="thin-bar__fill" style={{ width: `${percentDone}%` }} />
+          </div>
+        )}
+        {open.length === 0 ? (
+          <p className="empty">Nothing left to do.</p>
         ) : (
-          <ul>
-            {overdue.map((t) => (
+          <ul className="list">
+            {open.map((t) => (
               <TodoItem key={t.id} todo={t} onToggle={handleToggle} />
             ))}
           </ul>
         )}
-      </section>
+      </div>
 
-      <section>
-        <h2>Due soon and upcoming</h2>
-        {dueSoonOrUpcoming.length === 0 ? (
-          <p>Nothing due soon.</p>
-        ) : (
-          <ul>
-            {dueSoonOrUpcoming.map((t) => (
-              <TodoItem key={t.id} todo={t} onToggle={handleToggle} />
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section>
-        <h2>Done</h2>
-        {done.length === 0 ? (
-          <p>Nothing done yet.</p>
-        ) : (
-          <ul>
-            {done.map((t) => (
-              <TodoItem key={t.id} todo={t} onToggle={handleToggle} />
-            ))}
-          </ul>
-        )}
-      </section>
+      {done.length > 0 && (
+        <div className="section">
+          <button
+            type="button"
+            className="link-button"
+            aria-expanded={showDone}
+            onClick={() => setShowDone((v) => !v)}
+          >
+            {showDone ? "Hide" : "Show"} {done.length} completed
+          </button>
+          {showDone && (
+            <ul className="list">
+              {done.map((t) => (
+                <TodoItem key={t.id} todo={t} onToggle={handleToggle} />
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }

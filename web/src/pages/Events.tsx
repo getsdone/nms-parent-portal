@@ -10,6 +10,7 @@ export default function Events() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [pendingId, setPendingId] = useState<number | null>(null);
+  const [tab, setTab] = useState<"upcoming" | "going">("upcoming");
 
   useEffect(() => {
     api<EventRecord[]>("/events")
@@ -41,81 +42,100 @@ export default function Events() {
   }
 
   if (loading) {
-    return <h1>Events</h1>;
+    return <h1 className="page__title">Events</h1>;
   }
 
   const filtered = events.filter((e) => filter === "all" || e.kind === filter);
   const going = filtered.filter((e) => e.rsvped);
-  const upcoming = filtered.filter((e) => !e.rsvped);
+  const shown = tab === "going" ? going : filtered;
 
   return (
-    <div>
-      <h1>Events</h1>
-      {error && <p role="alert">{error}</p>}
+    <div className="page">
+      <header>
+        <h1 className="page__title">Events</h1>
+        <p className="page__lede">Virtual and in person, for Stars and families.</p>
+      </header>
+      {error && <p className="alert" role="alert">{error}</p>}
 
-      <fieldset>
-        <legend>Filter</legend>
-        <label>
-          <input
-            type="radio"
-            name="event-filter"
-            value="all"
-            checked={filter === "all"}
-            onChange={() => setFilter("all")}
-          />
-          All
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="event-filter"
-            value="virtual"
-            checked={filter === "virtual"}
-            onChange={() => setFilter("virtual")}
-          />
-          Virtual
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="event-filter"
-            value="in_person"
-            checked={filter === "in_person"}
-            onChange={() => setFilter("in_person")}
-          />
-          In person
-        </label>
-      </fieldset>
+      <div className="event-controls">
+        <div className="tabs" role="tablist" aria-label="Which events">
+          <button
+            type="button"
+            role="tab"
+            id="events-tab-upcoming"
+            aria-controls="events-panel"
+            aria-selected={tab === "upcoming"}
+            className="tabs__tab"
+            onClick={() => setTab("upcoming")}
+          >
+            Upcoming
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id="events-tab-going"
+            aria-controls="events-panel"
+            aria-selected={tab === "going"}
+            className="tabs__tab"
+            onClick={() => setTab("going")}
+          >
+            Going ({going.length})
+          </button>
+        </div>
 
-      <section>
-        <h2>You&rsquo;re going</h2>
-        {going.length === 0 ? (
-          <p>No RSVPs yet.</p>
-        ) : (
-          going.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onToggleRsvp={toggleRsvp}
-              pending={pendingId === event.id}
+        <fieldset className="segmented">
+          <legend>Filter</legend>
+          <label className="segmented__option">
+            <input
+              type="radio"
+              name="event-filter"
+              value="all"
+              checked={filter === "all"}
+              onChange={() => setFilter("all")}
             />
-          ))
-        )}
-      </section>
-
-      <section>
-        <h2>Upcoming</h2>
-        {upcoming.length === 0 ? (
-          <p>No other upcoming events.</p>
-        ) : (
-          upcoming.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onToggleRsvp={toggleRsvp}
-              pending={pendingId === event.id}
+            All
+          </label>
+          <label className="segmented__option">
+            <input
+              type="radio"
+              name="event-filter"
+              value="virtual"
+              checked={filter === "virtual"}
+              onChange={() => setFilter("virtual")}
             />
-          ))
+            Virtual
+          </label>
+          <label className="segmented__option">
+            <input
+              type="radio"
+              name="event-filter"
+              value="in_person"
+              checked={filter === "in_person"}
+              onChange={() => setFilter("in_person")}
+            />
+            In person
+          </label>
+        </fieldset>
+      </div>
+
+      <section
+        id="events-panel"
+        role="tabpanel"
+        aria-labelledby={tab === "going" ? "events-tab-going" : "events-tab-upcoming"}
+      >
+        {shown.length === 0 ? (
+          <p className="empty">{tab === "going" ? "No RSVPs yet." : "No upcoming events."}</p>
+        ) : (
+          <ul className="list">
+            {shown.map((event) => (
+              <EventCard
+                key={event.id}
+                event={event}
+                onToggleRsvp={toggleRsvp}
+                pending={pendingId === event.id}
+              />
+            ))}
+          </ul>
         )}
       </section>
     </div>
