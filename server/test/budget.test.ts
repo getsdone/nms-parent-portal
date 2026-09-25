@@ -66,3 +66,25 @@ test("GET /api/budget?parent=1 still succeeds for a guardian", async () => {
     server.close();
   }
 });
+
+test("GET /api/budget?parent=999999 returns 404", async () => {
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as AddressInfo;
+    const res = await fetch(`http://127.0.0.1:${port}/api/budget?parent=999999`);
+    assert.equal(res.status, 404);
+  } finally {
+    server.close();
+  }
+});
+
+test("GET /api/budget?parent=abc returns 400", async () => {
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as AddressInfo;
+    const res = await fetch(`http://127.0.0.1:${port}/api/budget?parent=abc`);
+    assert.equal(res.status, 400);
+  } finally {
+    server.close();
+  }
+});

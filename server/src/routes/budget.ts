@@ -17,7 +17,12 @@ router.get("/", async (req, res) => {
       "SELECT role FROM parents WHERE id = $1 AND family_id = $2",
       [parentId, FAMILY_ID],
     );
-    if (roleResult.rows[0]?.role === "caregiver") {
+    const role = roleResult.rows[0]?.role;
+    if (role === undefined) {
+      res.status(404).json({ error: "parent not found for this family" });
+      return;
+    }
+    if (role === "caregiver") {
       res.status(403).json({ error: "caregivers cannot view the budget" });
       return;
     }

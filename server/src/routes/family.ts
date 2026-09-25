@@ -190,6 +190,10 @@ router.patch("/", async (req, res) => {
       [actingParentId, FAMILY_ID],
     );
     const role = roleResult.rows[0]?.role;
+    if (role === undefined) {
+      res.status(404).json({ error: "parent not found for this family" });
+      return;
+    }
     if (role === "caregiver") {
       const onlyOwnContactRow =
         body.address_line1 === undefined &&

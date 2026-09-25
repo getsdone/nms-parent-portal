@@ -62,6 +62,37 @@ test("PATCH /api/family?parent=<caregiver> rejects an address change with 403", 
   });
 });
 
+test("PATCH /api/family?parent=999999 with an address change returns 404 and leaves the family unchanged", async () => {
+  await withServer(async (baseUrl) => {
+    const beforeRes = await fetch(`${baseUrl}/api/family`);
+    const before = await beforeRes.json();
+
+    const patchRes = await fetch(`${baseUrl}/api/family?parent=999999`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ city: "Should Not Apply" }),
+    });
+    assert.equal(patchRes.status, 404);
+    const body = (await patchRes.json()) as { error: string };
+    assert.equal(body.error, "parent not found for this family");
+
+    const afterRes = await fetch(`${baseUrl}/api/family`);
+    const after = await afterRes.json();
+    assert.deepEqual(after, before);
+  });
+});
+
+test("PATCH /api/family?parent=abc returns 400", async () => {
+  await withServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/family?parent=abc`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ city: "Round Rock" }),
+    });
+    assert.equal(res.status, 400);
+  });
+});
+
 test("PATCH /api/family?parent=<caregiver> allows editing their own phone, then restores it", async () => {
   await withServer(async (baseUrl) => {
     const familyRes = await fetch(`${baseUrl}/api/family`);
