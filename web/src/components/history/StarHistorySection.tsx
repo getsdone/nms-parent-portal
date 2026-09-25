@@ -8,23 +8,23 @@ function formatDateRange(startDate: string | null, endDate: string | null): stri
 
 export default function StarHistorySection({ star }: { star: StarHistory }) {
   return (
-    <section>
-      <h2>
+    <section className="section">
+      <h2 className="section__title">
         {star.first_name}, grade {star.grade}
       </h2>
       {star.history.length === 0 ? (
-        <p>No program history for this filter.</p>
+        <p className="empty">No program history for this filter.</p>
       ) : (
-        <ul>
+        <ul className="list">
           {star.history.map((entry) => (
-            <li key={entry.id}>
-              <p>
-                <strong>{entry.kind}</strong>: {entry.title}
+            <li key={entry.id} className="list__row">
+              <p className="list__title">
+                <strong className="history__kind">{entry.kind}</strong>: {entry.title}
                 {entry.provider ? ` (${entry.provider})` : ""}
               </p>
-              <p>{formatDateRange(entry.start_date, entry.end_date)}</p>
-              {entry.result ? <p>Result: {entry.result}</p> : null}
-              {entry.notes ? <p>{entry.notes}</p> : null}
+              <p className="list__meta">{formatDateRange(entry.start_date, entry.end_date)}</p>
+              {entry.result ? <p className="list__body">Result: {entry.result}</p> : null}
+              {entry.notes ? <p className="list__body">{entry.notes}</p> : null}
             </li>
           ))}
         </ul>

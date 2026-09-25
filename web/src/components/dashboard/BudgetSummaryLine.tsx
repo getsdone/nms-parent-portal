@@ -16,10 +16,10 @@ interface BudgetSummaryLineProps {
 
 export default function BudgetSummaryLine({ budget }: BudgetSummaryLineProps) {
   if (budget.fiscal_year === null) {
-    return <p>No budget set up yet.</p>;
+    return <p className="empty">No budget set up yet.</p>;
   }
   return (
-    <p>
+    <p className="nudge">
       {formatCents(budget.remaining_cents)} remaining, {budget.percent_used}% used.{" "}
       <Link to="/budget">See budget</Link>
     </p>

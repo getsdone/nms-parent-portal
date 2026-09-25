@@ -41,7 +41,7 @@ export default function Events() {
   }
 
   if (loading) {
-    return <h1>Events</h1>;
+    return <h1 className="page__title">Events</h1>;
   }
 
   const filtered = events.filter((e) => filter === "all" || e.kind === filter);
@@ -49,13 +49,13 @@ export default function Events() {
   const upcoming = filtered.filter((e) => !e.rsvped);
 
   return (
-    <div>
-      <h1>Events</h1>
-      {error && <p role="alert">{error}</p>}
+    <div className="page">
+      <h1 className="page__title">Events</h1>
+      {error && <p className="alert" role="alert">{error}</p>}
 
-      <fieldset>
+      <fieldset className="segmented">
         <legend>Filter</legend>
-        <label>
+        <label className="segmented__option">
           <input
             type="radio"
             name="event-filter"
@@ -65,7 +65,7 @@ export default function Events() {
           />
           All
         </label>
-        <label>
+        <label className="segmented__option">
           <input
             type="radio"
             name="event-filter"
@@ -75,7 +75,7 @@ export default function Events() {
           />
           Virtual
         </label>
-        <label>
+        <label className="segmented__option">
           <input
             type="radio"
             name="event-filter"
@@ -87,10 +87,10 @@ export default function Events() {
         </label>
       </fieldset>
 
-      <section>
-        <h2>You&rsquo;re going</h2>
+      <section className="section">
+        <h2 className="section__title">You&rsquo;re going</h2>
         {going.length === 0 ? (
-          <p>No RSVPs yet.</p>
+          <p className="empty">No RSVPs yet.</p>
         ) : (
           going.map((event) => (
             <EventCard
@@ -103,10 +103,10 @@ export default function Events() {
         )}
       </section>
 
-      <section>
-        <h2>Upcoming</h2>
+      <section className="section">
+        <h2 className="section__title">Upcoming</h2>
         {upcoming.length === 0 ? (
-          <p>No other upcoming events.</p>
+          <p className="empty">No other upcoming events.</p>
         ) : (
           upcoming.map((event) => (
             <EventCard

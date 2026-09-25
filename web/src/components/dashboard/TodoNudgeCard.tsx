@@ -7,11 +7,11 @@ interface TodoNudgeCardProps {
 
 export default function TodoNudgeCard({ todo }: TodoNudgeCardProps) {
   return (
-    <article>
-      <h3>
+    <article className="nudge">
+      <h3 className="nudge__title">
         <Link to="/todos">{todo.title}</Link>
       </h3>
-      {todo.due_date && <p>Due {todo.due_date}</p>}
+      {todo.due_date && <p className="nudge__meta">Due {todo.due_date}</p>}
     </article>
   );
 }

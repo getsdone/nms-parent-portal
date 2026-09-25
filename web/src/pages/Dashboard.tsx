@@ -17,28 +17,28 @@ export default function Dashboard() {
 
   if (error) {
     return (
-      <div>
-        <h1>Dashboard</h1>
-        <p role="alert">{error}</p>
+      <div className="page">
+        <h1 className="page__title">Dashboard</h1>
+        <p className="alert" role="alert">{error}</p>
       </div>
     );
   }
 
   if (!data) {
-    return <h1>Dashboard</h1>;
+    return <h1 className="page__title">Dashboard</h1>;
   }
 
   const needsAttentionCount = data.overdue_todos.length + data.rsvp_deadlines.length;
   const comingUpCount = data.due_soon_todos.length + data.upcoming_rsvps.length;
 
   return (
-    <div>
-      <h1>Dashboard</h1>
+    <div className="page">
+      <h1 className="page__title">Dashboard</h1>
 
-      <section>
-        <h2>Needs your attention</h2>
+      <section className="section section--attention">
+        <h2 className="section__title">Needs your attention</h2>
         {needsAttentionCount === 0 ? (
-          <p>Nothing needs your attention.</p>
+          <p className="empty">Nothing needs your attention.</p>
         ) : (
           <>
             {data.overdue_todos.map((todo) => (
@@ -55,10 +55,10 @@ export default function Dashboard() {
         )}
       </section>
 
-      <section>
-        <h2>Coming up</h2>
+      <section className="section">
+        <h2 className="section__title">Coming up</h2>
         {comingUpCount === 0 ? (
-          <p>Nothing coming up.</p>
+          <p className="empty">Nothing coming up.</p>
         ) : (
           <>
             {data.due_soon_todos.map((todo) => (
@@ -75,8 +75,8 @@ export default function Dashboard() {
         )}
       </section>
 
-      <section>
-        <h2>Budget</h2>
+      <section className="section">
+        <h2 className="section__title">Budget</h2>
         <BudgetSummaryLine budget={data.budget} />
       </section>
     </div>

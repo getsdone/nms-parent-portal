@@ -50,16 +50,16 @@ export default function Todos() {
   const done = todos.filter((t) => t.status === "done");
 
   return (
-    <div>
-      <h1>To-dos</h1>
-      {error && <p role="alert">{error}</p>}
+    <div className="page">
+      <h1 className="page__title">To-dos</h1>
+      {error && <p className="alert" role="alert">{error}</p>}
 
-      <section>
-        <h2>Overdue</h2>
+      <section className="section">
+        <h2 className="section__title">Overdue</h2>
         {overdue.length === 0 ? (
-          <p>Nothing overdue.</p>
+          <p className="empty">Nothing overdue.</p>
         ) : (
-          <ul>
+          <ul className="list">
             {overdue.map((t) => (
               <TodoItem key={t.id} todo={t} onToggle={handleToggle} />
             ))}
@@ -67,12 +67,12 @@ export default function Todos() {
         )}
       </section>
 
-      <section>
-        <h2>Due soon and upcoming</h2>
+      <section className="section">
+        <h2 className="section__title">Due soon and upcoming</h2>
         {dueSoonOrUpcoming.length === 0 ? (
-          <p>Nothing due soon.</p>
+          <p className="empty">Nothing due soon.</p>
         ) : (
-          <ul>
+          <ul className="list">
             {dueSoonOrUpcoming.map((t) => (
               <TodoItem key={t.id} todo={t} onToggle={handleToggle} />
             ))}
@@ -80,12 +80,12 @@ export default function Todos() {
         )}
       </section>
 
-      <section>
-        <h2>Done</h2>
+      <section className="section">
+        <h2 className="section__title">Done</h2>
         {done.length === 0 ? (
-          <p>Nothing done yet.</p>
+          <p className="empty">Nothing done yet.</p>
         ) : (
-          <ul>
+          <ul className="list">
             {done.map((t) => (
               <TodoItem key={t.id} todo={t} onToggle={handleToggle} />
             ))}

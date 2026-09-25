@@ -51,27 +51,27 @@ export default function Budget() {
 
   if (status.kind === "loading") {
     return (
-      <div>
-        <h1>Budget</h1>
-        <p>Loading…</p>
+      <div className="page">
+        <h1 className="page__title">Budget</h1>
+        <p className="notice">Loading…</p>
       </div>
     );
   }
 
   if (status.kind === "not-found") {
     return (
-      <div>
-        <h1>Budget</h1>
-        <p>No budget on file for this family.</p>
+      <div className="page">
+        <h1 className="page__title">Budget</h1>
+        <p className="empty">No budget on file for this family.</p>
       </div>
     );
   }
 
   if (status.kind === "error") {
     return (
-      <div>
-        <h1>Budget</h1>
-        <p>{status.message}</p>
+      <div className="page">
+        <h1 className="page__title">Budget</h1>
+        <p className="alert">{status.message}</p>
       </div>
     );
   }
@@ -83,9 +83,9 @@ export default function Budget() {
       : (budget.spent_cents / budget.allocated_cents) * 100;
 
   return (
-    <div>
-      <h1>Budget — FY{budget.fiscal_year}</h1>
-      <dl>
+    <div className="page">
+      <h1 className="page__title">Budget — FY{budget.fiscal_year}</h1>
+      <dl className="card card--hero stat-list">
         <dt>Allocated</dt>
         <dd>{formatCents(budget.allocated_cents)}</dd>
         <dt>Spent</dt>
@@ -94,40 +94,42 @@ export default function Budget() {
         <dd>{formatCents(budget.remaining_cents)}</dd>
       </dl>
       {budget.allocated_cents === 0 ? (
-        <p>No allocation</p>
+        <p className="empty">No allocation</p>
       ) : (
-        <>
+        <div className="progress">
           <label htmlFor="budget-progress">Budget spent</label>
           <progress
             id="budget-progress"
             value={budget.spent_cents}
             max={budget.allocated_cents}
           />
-          <span>{percentUsed.toFixed(0)}%</span>
-        </>
+          <span className="progress__value">{percentUsed.toFixed(0)}%</span>
+        </div>
       )}
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Vendor</th>
-            <th>Category</th>
-            <th>Description</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {budget.transactions.map((transaction) => (
-            <tr key={transaction.id}>
-              <td>{transaction.occurred_on}</td>
-              <td>{transaction.vendor}</td>
-              <td>{transaction.category}</td>
-              <td>{transaction.description}</td>
-              <td>{formatCents(transaction.amount_cents)}</td>
+      <div className="table-wrap">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Vendor</th>
+              <th>Category</th>
+              <th>Description</th>
+              <th className="num">Amount</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {budget.transactions.map((transaction) => (
+              <tr key={transaction.id}>
+                <td>{transaction.occurred_on}</td>
+                <td>{transaction.vendor}</td>
+                <td>{transaction.category}</td>
+                <td>{transaction.description}</td>
+                <td className="num">{formatCents(transaction.amount_cents)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

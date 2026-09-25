@@ -7,9 +7,9 @@ interface Props {
 
 export default function AddressFields({ family, onChange }: Props) {
   return (
-    <fieldset>
+    <fieldset className="fieldset">
       <legend>Address</legend>
-      <label>
+      <label className="field">
         Street address
         <input
           type="text"
@@ -17,7 +17,7 @@ export default function AddressFields({ family, onChange }: Props) {
           onChange={(e) => onChange("address_line1", e.target.value)}
         />
       </label>
-      <label>
+      <label className="field">
         City
         <input
           type="text"
@@ -25,7 +25,7 @@ export default function AddressFields({ family, onChange }: Props) {
           onChange={(e) => onChange("city", e.target.value)}
         />
       </label>
-      <label>
+      <label className="field">
         State
         <input
           type="text"
@@ -33,7 +33,7 @@ export default function AddressFields({ family, onChange }: Props) {
           onChange={(e) => onChange("state", e.target.value)}
         />
       </label>
-      <label>
+      <label className="field">
         ZIP
         <input
           type="text"
