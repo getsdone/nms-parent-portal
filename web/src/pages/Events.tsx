@@ -51,6 +51,9 @@ export default function Events() {
   return (
     <div>
       <h1>Events</h1>
+      <a className="link" href="/api/calendar.ics">
+        Subscribe to your calendar
+      </a>
       {error && <p role="alert">{error}</p>}
 
       <fieldset>
