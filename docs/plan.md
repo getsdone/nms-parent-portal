@@ -165,3 +165,50 @@ loadFamily's SELECTs.
 
 Out of scope, stated: account menu, Settings, Star view, Pinbook, Help and
 guides, "Idea from" advice rows, second-guardian invite.
+
+## WP8: multi-guardian households and caregiver role (issue #20)
+
+Today a to-do belongs to the family, so any parent who completes it clears
+it for everyone. That holds. What is missing: who did it, a caregiver with
+limited rights, and a UI that treats guardians as a list.
+
+### Data model
+
+    parents  + role TEXT NOT NULL DEFAULT 'guardian'
+               CHECK (role IN ('guardian', 'caregiver'))
+    todos    + completed_by INTEGER NULL REFERENCES parents(id) ON DELETE SET NULL
+
+Seed: both existing parents are guardians; add one caregiver (a grandparent
+who drives to camp) with phone only. Two completed todos get completed_by.
+
+### Acting parent, without auth
+
+The prototype has no login. The header gets an "Acting as" control listing
+the family's parents; the choice lives in localStorage and every write
+sends it. The real system replaces this with the session's user.
+
+    PATCH /api/todos/:id      body { completed, parent_id }; records
+                              completed_by = parent_id on completion, null on undo
+    POST /api/events/:id/rsvp unchanged (RSVP is per family)
+    GET /api/todos            rows gain completed_by_name
+    GET /api/family           parents gain role
+    PATCH /api/family         a caregiver may not change address, school, or
+                              other parents; the server rejects with 403 when
+                              the acting parent_id (query ?parent=) is a caregiver
+
+### Rights
+
+| | Guardian | Caregiver |
+| --- | --- | --- |
+| See and complete to-dos | yes | yes |
+| RSVP | yes | yes |
+| See budget | yes | no (nav item hidden, route returns 403) |
+| Edit family info | yes | own contact row only |
+
+### Frontend
+
+- Family info: "You" becomes "Guardians and caregivers", one card per parent
+  with a role badge, Edit on each. The second-guardian card goes away.
+- To-do rows show "Done by <first name> · <Mon D>" when completed_by is set.
+- Header: "Acting as" select. When a caregiver is selected, Budget leaves the
+  nav and Family info shows only that person's card as editable.

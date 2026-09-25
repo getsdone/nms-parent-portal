@@ -9,9 +9,9 @@ columns cast to text in SQL. Timestamps are `timestamptz`.
 | Table | One row is | Key columns | Source system |
 | --- | --- | --- | --- |
 | families | one household | name, address_line1, city, state, zip | Zoho CRM |
-| parents | one guardian in a family | family_id, name, email, phone, is_primary, preferred_language | Zoho CRM |
+| parents | one guardian or caregiver in a family | family_id, name, email, phone, is_primary, preferred_language, role (guardian, caregiver) | Zoho CRM |
 | stars | one enrolled student | family_id, first_name, grade, school_name, school_district, math_teacher, counselor_email | Zoho CRM |
-| todos | one action a family owes | family_id, star_id (null = whole family), title, description, link, due_date, required, completed_at | Zoho CRM |
+| todos | one action a family owes | family_id, star_id (null = whole family), title, description, link, due_date, required, completed_at, completed_by (parent) | Zoho CRM |
 | program_history | one course, competition, or camp a Star took | star_id, kind (course, competition, camp), title, provider, start_date, end_date, result, notes | Zoho CRM |
 | budgets | one family's allocation for one fiscal year | family_id, fiscal_year, allocated_cents; unique per family and year | QuickBooks |
 | budget_transactions | one spend against the family budget | family_id, occurred_on, vendor, category, amount_cents, description | Ramp |
@@ -19,7 +19,8 @@ columns cast to text in SQL. Timestamps are `timestamptz`.
 | rsvps | one family's yes to one event | event_id, family_id; primary key on both | portal-owned |
 
 Columns added by WP7 (star_id, math_teacher, counselor_email,
-preferred_language) land with that pull request.
+preferred_language) and WP8 (parents.role, todos.completed_by) land with
+those pull requests.
 
 ## Relationships
 
