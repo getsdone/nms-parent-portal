@@ -36,3 +36,28 @@ test("async handler rejection reaches errorHandler as 500 JSON", async () => {
     server.close();
   }
 });
+
+test("errorHandler must be registered after every route that can throw", async () => {
+  // Documents the ordering rule behind index.ts's repeated app.use(errorHandler):
+  // Express only forwards an error to error middleware registered *after* the
+  // handler that threw. Register errorHandler once, add a throwing route
+  // after it, then register errorHandler again (mirroring app.ts + index.ts)
+  // and confirm the second registration is what catches the error.
+  const throwawayApp = express();
+  throwawayApp.use(errorHandler);
+  throwawayApp.get("/boom", async () => {
+    throw new Error("boom");
+  });
+  throwawayApp.use(errorHandler);
+
+  const server = throwawayApp.listen(0);
+  try {
+    const { port } = server.address() as AddressInfo;
+    const res = await fetch(`http://127.0.0.1:${port}/boom`);
+    assert.equal(res.status, 500);
+    assert.equal(res.headers.get("content-type")?.includes("application/json"), true);
+    assert.deepEqual(await res.json(), { error: "internal error" });
+  } finally {
+    server.close();
+  }
+});
