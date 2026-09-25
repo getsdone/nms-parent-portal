@@ -6,9 +6,12 @@ INSERT INTO families (id, name, address_line1, city, state, zip) VALUES
   (1, 'The Rivera Family', '4210 Speedway Ave', 'Austin', 'TX', '78751');
 SELECT setval('families_id_seq', (SELECT MAX(id) FROM families));
 
-INSERT INTO parents (family_id, name, email, phone, is_primary, preferred_language) VALUES
-  (1, 'Elena Rivera', 'elena.rivera@example.com', '512-555-0134', TRUE, 'English'),
-  (1, 'Marcus Rivera', 'marcus.rivera@example.com', '512-555-0198', FALSE, 'Spanish');
+-- Rosa Alvarez is a caregiver (grandparent who drives to camp): phone only,
+-- no email, not primary. The two guardians keep their existing rows.
+INSERT INTO parents (family_id, name, email, phone, is_primary, preferred_language, role) VALUES
+  (1, 'Elena Rivera', 'elena.rivera@example.com', '512-555-0134', TRUE, 'English', 'guardian'),
+  (1, 'Marcus Rivera', 'marcus.rivera@example.com', '512-555-0198', FALSE, 'Spanish', 'guardian'),
+  (1, 'Rosa Alvarez', NULL, '512-555-0177', FALSE, NULL, 'caregiver');
 
 INSERT INTO stars (family_id, first_name, grade, school_name, school_district, math_teacher, counselor_email) VALUES
   (1, 'Sofia', 7, 'Lamar Middle School', 'Austin ISD', 'Mr. Alvarez', 'counselor.lamar@austinisd.org'),
@@ -18,18 +21,25 @@ INSERT INTO stars (family_id, first_name, grade, school_name, school_district, m
 -- 2 completed. All belong to Sofia (star_id 1) except the two family-wide
 -- ones (survey, W-9), which stay star_id NULL so ?star=<any> still surfaces
 -- them.
-INSERT INTO todos (family_id, star_id, title, description, link, due_date, required, completed_at) VALUES
-  (1, 1, 'Submit enrollment confirmation', 'Confirm Sofia''s spot for the fall term.', 'https://nationalmathstars.org/forms/enrollment', CURRENT_DATE - 15, TRUE, NULL),
-  (1, 1, 'Upload proof of grade level', 'A report card or enrollment letter showing 7th grade.', 'https://nationalmathstars.org/forms/grade-proof', CURRENT_DATE - 10, TRUE, NULL),
-  (1, NULL, 'Complete family survey', 'Annual survey on goals and availability.', NULL, CURRENT_DATE - 5, TRUE, NULL),
-  (1, 1, 'Register for fall competition', 'MATHCOUNTS chapter round registration.', 'https://nationalmathstars.org/forms/mathcounts-fall', CURRENT_DATE + 2, FALSE, NULL),
-  (1, NULL, 'Submit W-9 for reimbursement', 'Needed before any camp reimbursement can be paid out.', NULL, CURRENT_DATE + 6, TRUE, NULL),
-  (1, 1, 'Book winter camp travel', 'Reserve flights before prices rise.', NULL, CURRENT_DATE + 51, FALSE, NULL),
-  (1, 1, 'RSVP to welcome call', 'Fall welcome call for new and returning families.', 'https://nationalmathstars.org/events/welcome-call', CURRENT_DATE - 55, TRUE, date_trunc('day', now()) - interval '55 days' + interval '15 hours 4 minutes'),
-  (1, 1, 'Update emergency contact', 'Confirm current emergency contact info on file.', NULL, CURRENT_DATE - 20, FALSE, date_trunc('day', now()) - interval '21 days' + interval '10 hours 22 minutes');
+-- The two completed rows below (RSVP to welcome call, Update emergency
+-- contact) get completed_by = 1 (Elena Rivera). Leo's completed row keeps
+-- completed_by NULL: completed_by is nullable, and the seed only backfills
+-- who completed Sofia's two.
+INSERT INTO todos (family_id, star_id, title, description, link, due_date, required, completed_at, completed_by) VALUES
+  (1, 1, 'Submit enrollment confirmation', 'Confirm Sofia''s spot for the fall term.', 'https://nationalmathstars.org/forms/enrollment', CURRENT_DATE - 15, TRUE, NULL, NULL),
+  (1, 1, 'Upload proof of grade level', 'A report card or enrollment letter showing 7th grade.', 'https://nationalmathstars.org/forms/grade-proof', CURRENT_DATE - 10, TRUE, NULL, NULL),
+  (1, NULL, 'Complete family survey', 'Annual survey on goals and availability.', NULL, CURRENT_DATE - 5, TRUE, NULL, NULL),
+  (1, 1, 'Register for fall competition', 'MATHCOUNTS chapter round registration.', 'https://nationalmathstars.org/forms/mathcounts-fall', CURRENT_DATE + 2, FALSE, NULL, NULL),
+  (1, NULL, 'Submit W-9 for reimbursement', 'Needed before any camp reimbursement can be paid out.', NULL, CURRENT_DATE + 6, TRUE, NULL, NULL),
+  (1, 1, 'Book winter camp travel', 'Reserve flights before prices rise.', NULL, CURRENT_DATE + 51, FALSE, NULL, NULL),
+  (1, 1, 'RSVP to welcome call', 'Fall welcome call for new and returning families.', 'https://nationalmathstars.org/events/welcome-call', CURRENT_DATE - 55, TRUE, date_trunc('day', now()) - interval '55 days' + interval '15 hours 4 minutes', 1),
+  (1, 1, 'Update emergency contact', 'Confirm current emergency contact info on file.', NULL, CURRENT_DATE - 20, FALSE, date_trunc('day', now()) - interval '21 days' + interval '10 hours 22 minutes', 1);
 
 -- Leo's todos (star_id 2): 2 overdue required, 1 due soon, 1 done. These
 -- only show up when the unfiltered /api/todos call is used or ?star=2.
+-- completed_by omitted here: it defaults to NULL, so Leo's completed row
+-- (last one, below) stays unattributed. Only Sofia's two completed rows
+-- above were backfilled with a completer.
 INSERT INTO todos (family_id, star_id, title, description, link, due_date, required, completed_at) VALUES
   (1, 2, 'Submit enrollment confirmation', 'Confirm Leo''s spot for the fall term.', 'https://nationalmathstars.org/forms/enrollment', CURRENT_DATE - 12, TRUE, NULL),
   (1, 2, 'Upload proof of grade level', 'A report card or enrollment letter showing 4th grade.', 'https://nationalmathstars.org/forms/grade-proof', CURRENT_DATE - 3, TRUE, NULL),

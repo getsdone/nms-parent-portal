@@ -16,10 +16,14 @@ interface TodoRow {
   due_date: string | null;
   required: boolean;
   completed_at: Date | null;
+  completed_by: number | null;
+  completed_by_name: string | null;
 }
 
-const SELECT_COLUMNS = `id, title, description, link,
-  to_char(due_date, 'YYYY-MM-DD') AS due_date, required, completed_at`;
+const SELECT_COLUMNS = `t.id, t.title, t.description, t.link,
+  to_char(t.due_date, 'YYYY-MM-DD') AS due_date, t.required, t.completed_at,
+  t.completed_by, p.name AS completed_by_name`;
+const FROM_CLAUSE = `FROM todos t LEFT JOIN parents p ON p.id = t.completed_by`;
 
 // due_date and "today" are compared as UTC calendar dates so a DATE column
 // (which pg parses at UTC midnight) lines up with the server's clock
@@ -57,9 +61,9 @@ router.get("/", async (req, res) => {
   // means that Star's todos plus the family-wide ones (star_id IS NULL).
   const { rows } = await pool.query<TodoRow>(
     `SELECT ${SELECT_COLUMNS}
-     FROM todos
-     WHERE family_id = $1 AND ($2::int IS NULL OR star_id = $2 OR star_id IS NULL)
-     ORDER BY completed_at NULLS FIRST, due_date ASC`,
+     ${FROM_CLAUSE}
+     WHERE t.family_id = $1 AND ($2::int IS NULL OR t.star_id = $2 OR t.star_id IS NULL)
+     ORDER BY t.completed_at NULLS FIRST, t.due_date ASC`,
     [FAMILY_ID, starId],
   );
   res.json(rows.map(withStatus));
@@ -67,21 +71,45 @@ router.get("/", async (req, res) => {
 
 router.patch("/:id", async (req, res) => {
   const id = Number(req.params.id);
-  const { completed } = req.body as { completed?: unknown };
+  const { completed, parent_id } = req.body as {
+    completed?: unknown;
+    parent_id?: unknown;
+  };
   if (!Number.isInteger(id) || typeof completed !== "boolean") {
     return res.status(400).json({ error: "completed must be a boolean" });
   }
 
-  const { rows } = await pool.query<TodoRow>(
+  let parentId: number | null = null;
+  if (parent_id !== undefined) {
+    if (!Number.isInteger(parent_id)) {
+      return res.status(400).json({ error: "parent_id must be an integer" });
+    }
+    const parentCheck = await pool.query(
+      "SELECT id FROM parents WHERE id = $1 AND family_id = $2",
+      [parent_id, FAMILY_ID],
+    );
+    if (parentCheck.rows.length === 0) {
+      return res.status(404).json({ error: "parent not found" });
+    }
+    parentId = parent_id as number;
+  }
+
+  const { rows: updated } = await pool.query(
     `UPDATE todos
-     SET completed_at = CASE WHEN $1 THEN now() ELSE NULL END
+     SET completed_at = CASE WHEN $1 THEN now() ELSE NULL END,
+         completed_by = CASE WHEN $1 THEN $4::int ELSE NULL END
      WHERE id = $2 AND family_id = $3
-     RETURNING ${SELECT_COLUMNS}`,
-    [completed, id, FAMILY_ID],
+     RETURNING id`,
+    [completed, id, FAMILY_ID, parentId],
   );
-  if (rows.length === 0) {
+  if (updated.length === 0) {
     return res.status(404).json({ error: "not found" });
   }
+
+  const { rows } = await pool.query<TodoRow>(
+    `SELECT ${SELECT_COLUMNS} ${FROM_CLAUSE} WHERE t.id = $1`,
+    [id],
+  );
   res.json(withStatus(rows[0]));
 });
 

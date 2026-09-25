@@ -15,10 +15,11 @@ CREATE TABLE parents (
   id SERIAL PRIMARY KEY,
   family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
-  email TEXT NOT NULL,
+  email TEXT,
   phone TEXT,
   is_primary BOOLEAN NOT NULL DEFAULT FALSE,
-  preferred_language TEXT
+  preferred_language TEXT,
+  role TEXT NOT NULL DEFAULT 'guardian' CHECK (role IN ('guardian', 'caregiver'))
 );
 
 CREATE TABLE stars (
@@ -41,7 +42,8 @@ CREATE TABLE todos (
   link TEXT,
   due_date DATE,
   required BOOLEAN NOT NULL DEFAULT FALSE,
-  completed_at TIMESTAMPTZ
+  completed_at TIMESTAMPTZ,
+  completed_by INTEGER REFERENCES parents(id) ON DELETE SET NULL
 );
 
 CREATE TABLE program_history (

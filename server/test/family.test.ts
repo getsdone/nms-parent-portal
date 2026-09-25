@@ -16,7 +16,7 @@ async function withServer<T>(fn: (baseUrl: string) => Promise<T>): Promise<T> {
 interface FamilyBody {
   id: number;
   city: string;
-  parents: { id: number; preferred_language: string | null }[];
+  parents: { id: number; name: string; preferred_language: string | null; role: string }[];
   stars: { id: number; math_teacher: string | null; counselor_email: string | null }[];
 }
 
@@ -26,7 +26,7 @@ test("GET /api/family returns family, parents, and stars for family 1", async ()
     assert.equal(res.status, 200);
     const body = (await res.json()) as FamilyBody;
     assert.equal(body.id, 1);
-    assert.equal(body.parents.length, 2);
+    assert.equal(body.parents.length, 3);
     assert.equal(body.stars.length, 2);
 
     for (const parent of body.parents) {
@@ -36,6 +36,68 @@ test("GET /api/family returns family, parents, and stars for family 1", async ()
       assert.ok("math_teacher" in star);
       assert.ok("counselor_email" in star);
     }
+
+    const guardians = body.parents.filter((p) => p.role === "guardian");
+    const caregivers = body.parents.filter((p) => p.role === "caregiver");
+    assert.equal(guardians.length, 2);
+    assert.equal(caregivers.length, 1);
+    assert.equal(caregivers[0].name, "Rosa Alvarez");
+  });
+});
+
+test("PATCH /api/family?parent=<caregiver> rejects an address change with 403", async () => {
+  await withServer(async (baseUrl) => {
+    const familyRes = await fetch(`${baseUrl}/api/family`);
+    const family = (await familyRes.json()) as FamilyBody;
+    const caregiver = family.parents.find((p) => p.role === "caregiver")!;
+
+    const res = await fetch(`${baseUrl}/api/family?parent=${caregiver.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ city: "Round Rock" }),
+    });
+    assert.equal(res.status, 403);
+    const body = (await res.json()) as { error: string };
+    assert.equal(body.error, "caregivers may only edit their own contact details");
+  });
+});
+
+test("PATCH /api/family?parent=<caregiver> allows editing their own phone, then restores it", async () => {
+  await withServer(async (baseUrl) => {
+    const familyRes = await fetch(`${baseUrl}/api/family`);
+    const family = (await familyRes.json()) as FamilyBody;
+    const caregiver = family.parents.find((p) => p.role === "caregiver")! as FamilyBody["parents"][number] & {
+      phone: string | null;
+    };
+    const originalPhone = caregiver.phone;
+
+    const patchRes = await fetch(`${baseUrl}/api/family?parent=${caregiver.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parents: [{ id: caregiver.id, phone: "512-555-9999" }] }),
+    });
+    assert.equal(patchRes.status, 200);
+    const patched = (await patchRes.json()) as {
+      parents: { id: number; phone: string | null }[];
+    };
+    assert.equal(
+      patched.parents.find((p) => p.id === caregiver.id)?.phone,
+      "512-555-9999",
+    );
+
+    const restoreRes = await fetch(`${baseUrl}/api/family?parent=${caregiver.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parents: [{ id: caregiver.id, phone: originalPhone }] }),
+    });
+    assert.equal(restoreRes.status, 200);
+    const restored = (await restoreRes.json()) as {
+      parents: { id: number; phone: string | null }[];
+    };
+    assert.equal(
+      restored.parents.find((p) => p.id === caregiver.id)?.phone,
+      originalPhone,
+    );
   });
 });
 

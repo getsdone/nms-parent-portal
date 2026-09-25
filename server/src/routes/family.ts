@@ -16,10 +16,11 @@ interface FamilyResponse {
   parents: Array<{
     id: number;
     name: string;
-    email: string;
+    email: string | null;
     phone: string | null;
     is_primary: boolean;
     preferred_language: string | null;
+    role: string;
   }>;
   stars: Array<{
     id: number;
@@ -45,7 +46,7 @@ async function loadFamily(
   }
 
   const parentsResult = await client.query(
-    "SELECT id, name, email, phone, is_primary, preferred_language FROM parents WHERE family_id = $1 ORDER BY id",
+    "SELECT id, name, email, phone, is_primary, preferred_language, role FROM parents WHERE family_id = $1 ORDER BY id",
     [FAMILY_ID],
   );
   const starsResult = await client.query(
@@ -169,6 +170,43 @@ router.patch("/", async (req, res) => {
 
   const stars = (body.stars ?? []) as StarPatch[];
   const parents = (body.parents ?? []) as ParentPatch[];
+
+  // ?parent=<id> is the prototype's stand-in for a logged-in session (see
+  // WP8 plan: no auth yet, the client sends who is acting). Absent, this
+  // patch keeps today's unrestricted guardian behavior.
+  const parentQuery = req.query.parent;
+  if (parentQuery !== undefined) {
+    const actingParentId = Number(parentQuery);
+    if (
+      typeof parentQuery !== "string" ||
+      !Number.isInteger(actingParentId) ||
+      actingParentId <= 0
+    ) {
+      res.status(400).json({ error: "parent must be a positive integer" });
+      return;
+    }
+    const roleResult = await pool.query<{ role: string }>(
+      "SELECT role FROM parents WHERE id = $1 AND family_id = $2",
+      [actingParentId, FAMILY_ID],
+    );
+    const role = roleResult.rows[0]?.role;
+    if (role === "caregiver") {
+      const onlyOwnContactRow =
+        body.address_line1 === undefined &&
+        body.city === undefined &&
+        body.state === undefined &&
+        body.zip === undefined &&
+        body.stars === undefined &&
+        parents.length === 1 &&
+        parents[0].id === actingParentId;
+      if (!onlyOwnContactRow) {
+        res.status(403).json({
+          error: "caregivers may only edit their own contact details",
+        });
+        return;
+      }
+    }
+  }
 
   const client = await pool.connect();
   try {
