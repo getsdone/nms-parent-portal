@@ -25,6 +25,7 @@ export default function TodoItem({ todo, onToggle }: TodoItemProps) {
         />
         {todo.title}
       </label>
+      {todo.description && <p>{todo.description}</p>}
       {todo.required && <strong> (required)</strong>}
       {todo.due_date && <span> — due {todo.due_date}</span>}
       {todo.link && (
