@@ -69,3 +69,12 @@ test("DELETE /api/events/:id/rsvp 404s on a bad id", async () => {
     assert.equal(res.status, 404);
   });
 });
+
+test("POST /api/events/abc/rsvp 400s on a non-numeric id", async () => {
+  await withServer(async (base) => {
+    const res = await fetch(`${base}/api/events/abc/rsvp`, { method: "POST" });
+    assert.equal(res.status, 400);
+    const body = (await res.json()) as { error: string };
+    assert.equal(body.error, "id must be an integer");
+  });
+});
