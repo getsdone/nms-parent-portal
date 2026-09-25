@@ -8,6 +8,7 @@ import Todos from "./pages/Todos";
 import Events from "./pages/Events";
 import Budget from "./pages/Budget";
 import History from "./pages/History";
+import Documents from "./pages/Documents";
 import Profile from "./pages/Profile";
 
 function initial(name: string): string {
@@ -148,6 +149,11 @@ export default function App() {
                 </NavLink>
               </li>
               <li>
+                <NavLink className="nav__link" to="/documents">
+                  Documents
+                </NavLink>
+              </li>
+              <li>
                 <NavLink className="nav__link" to="/profile">
                   Family info
                 </NavLink>
@@ -176,6 +182,7 @@ export default function App() {
           <Route path="/events" element={<Events />} />
           <Route path="/budget" element={<Budget />} />
           <Route path="/history" element={<History />} />
+          <Route path="/documents" element={<Documents />} />
           <Route path="/profile" element={<Profile />} />
         </Routes>
       </main>
