@@ -108,3 +108,107 @@ WP7 deploy (head, no code)
     1:05-1:30  merge, WP6
     1:30-1:45  deploy, reviewer pass
     1:45-2:00  README, push
+
+## WP7: star context, family info, nudge banner (added after the design review)
+
+The design scopes the portal to one Star at a time, chosen by a switcher in
+the header, and presents the profile as "Family info" with read-only rows
+and an Edit control per section. The build had one Star and one edit form.
+
+### Data model changes
+
+    stars     + math_teacher TEXT, counselor_email TEXT
+    parents   + preferred_language TEXT
+    todos     + star_id INTEGER NULL REFERENCES stars(id) ON DELETE CASCADE
+              null means the whole family
+
+Seed: a second Star (Leo, grade 4, same school) with 4 todos (2 overdue
+required, 1 due soon, 1 done) and 3 program_history rows. Existing todos
+get star_id = 1 except the two family-wide ones (survey, W-9). Second
+parent stays as the "Second guardian". Budget stays family-level; the
+schema has no per-star budget and the page says "Family budget".
+
+### API changes
+
+    GET /api/todos?star=<id>       rows where star_id = id OR star_id IS NULL
+    GET /api/dashboard?star=<id>   same filter for the todo nudges; events
+                                   and budget unchanged
+    GET /api/family                stars gain math_teacher, counselor_email;
+                                   parents gain preferred_language
+    PATCH /api/family              accepts those fields, same rules
+    GET /api/history?star=<id>     already per star; add the filter
+
+`star` absent means all Stars. Seeding Leo changes the family-wide counts,
+so the existing todos, dashboard and history tests pass `?star=1` to keep
+their expected numbers, the family test expects two Stars, and each file
+gains one unfiltered assertion covering both Stars. Leo's history rows are
+one course, one competition, one camp. In family.ts the three new columns
+thread through StarPatch, ParentPatch, validatePatch, both UPDATE loops, and
+loadFamily's SELECTs.
+
+### Frontend
+
+- Header: one pill per Star (initial in a circle plus first name), active
+  one navy. Selection lives in localStorage and a React context; every
+  page reads it and passes ?star=.
+- Nav "To-dos" shows a coral count badge of overdue required todos for the
+  selected Star, from /api/dashboard.
+- Non-home pages show a coral banner "N overdue items for <Star>. Finish
+  now" linking to /todos when N > 0.
+- Profile becomes "Family info": sections You, Home address, <Star>'s
+  school, Second guardian. Each section is read-only label/value rows with
+  an Edit link that swaps the section to its existing form fields and a
+  Save. School section shows only the selected Star.
+- History page title becomes "<Star>'s journey"; To-dos subtitle "For
+  <Star> · <done> of <total> done this year"; Dashboard "Here's what
+  matters for <Star> today."
+
+Out of scope, stated: account menu, Settings, Star view, Pinbook, Help and
+guides, "Idea from" advice rows, second-guardian invite.
+
+## WP8: multi-guardian households and caregiver role (issue #20)
+
+Today a to-do belongs to the family, so any parent who completes it clears
+it for everyone. That holds. What is missing: who did it, a caregiver with
+limited rights, and a UI that treats guardians as a list.
+
+### Data model
+
+    parents  + role TEXT NOT NULL DEFAULT 'guardian'
+               CHECK (role IN ('guardian', 'caregiver'))
+    todos    + completed_by INTEGER NULL REFERENCES parents(id) ON DELETE SET NULL
+
+Seed: both existing parents are guardians; add one caregiver (a grandparent
+who drives to camp) with phone only. Two completed todos get completed_by.
+
+### Acting parent, without auth
+
+The prototype has no login. The header gets an "Acting as" control listing
+the family's parents; the choice lives in localStorage and every write
+sends it. The real system replaces this with the session's user.
+
+    PATCH /api/todos/:id      body { completed, parent_id }; records
+                              completed_by = parent_id on completion, null on undo
+    POST /api/events/:id/rsvp unchanged (RSVP is per family)
+    GET /api/todos            rows gain completed_by_name
+    GET /api/family           parents gain role
+    PATCH /api/family         a caregiver may not change address, school, or
+                              other parents; the server rejects with 403 when
+                              the acting parent_id (query ?parent=) is a caregiver
+
+### Rights
+
+| | Guardian | Caregiver |
+| --- | --- | --- |
+| See and complete to-dos | yes | yes |
+| RSVP | yes | yes |
+| See budget | yes | no (nav item hidden, route returns 403) |
+| Edit family info | yes | own contact row only |
+
+### Frontend
+
+- Family info: "You" becomes "Guardians and caregivers", one card per parent
+  with a role badge, Edit on each. The second-guardian card goes away.
+- To-do rows show "Done by <first name> · <Mon D>" when completed_by is set.
+- Header: "Acting as" select. When a caregiver is selected, Budget leaves the
+  nav and Family info shows only that person's card as editable.

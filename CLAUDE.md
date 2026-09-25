@@ -18,8 +18,16 @@ a "could" feature or real auth without a new plan.
 - Server: Express 5. Async handler errors reach the JSON error middleware
   in `server/src/app.ts`. Any middleware mounted later in `index.ts` needs
   the error handler registered again after it.
+- Data model: `docs/data-model.md` explains every table, what is computed
+  at read time, and which system owns each table. `db/schema.sql` defines
+  them.
+- Migrations: none yet. A schema change edits `db/schema.sql` in place;
+  `npm run db:apply` drops and recreates everything, then seeds. Apply to
+  your own Neon branch, and the PR body says main needs `db:apply` after
+  merge. The forward-only migration plan is in `docs/data-model.md`; adopt
+  it before any real family data lands.
 - Seed: `db/seed.sql` computes every date from `CURRENT_DATE` so tests hold
-  on any day. `db/apply.ts` drops and recreates all tables.
+  on any day.
 - Money is integer cents. Date columns are cast to text in SQL.
 - Temporary files: the session scratchpad. Never `/tmp`, never a new git
   worktree outside the harness's own.
