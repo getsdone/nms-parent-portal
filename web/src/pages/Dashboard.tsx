@@ -120,7 +120,7 @@ export default function Dashboard() {
       {heroTodo ? (
         <OverdueHero todo={heroTodo} total={data.overdue_todos.length} />
       ) : (
-        data.rsvp_deadlines.length === 0 && <p className="empty">Nothing needs your attention.</p>
+        needsAttentionCount === 0 && <p className="empty">Nothing needs your attention.</p>
       )}
 
       <ul className="summary">
