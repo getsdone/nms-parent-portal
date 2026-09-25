@@ -1,4 +1,4 @@
-import { formatEventWhen, formatMonthShort } from "../format";
+import { formatEventWhen, formatMonthDay, formatMonthShort } from "../format";
 
 export type EventKind = "virtual" | "in_person";
 
@@ -32,7 +32,13 @@ export default function EventCard({ event, onToggleRsvp, pending }: EventCardPro
         <h3 className="list__title">{event.title}</h3>
         <p className="list__meta">
           {formatEventWhen(event.starts_at)} · {event.kind === "virtual" ? "Virtual" : "In person"}
+          {event.kind === "in_person" && event.location ? ` · ${event.location}` : ""}
         </p>
+        {event.rsvp_deadline && !event.rsvped && (
+          <span style={{ color: "var(--color-muted)" }}>
+            RSVP by {formatMonthDay(new Date(event.rsvp_deadline))}
+          </span>
+        )}
       </div>
       {event.rsvped ? (
         <button

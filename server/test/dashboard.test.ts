@@ -8,7 +8,9 @@ import { app } from "../src/app.js";
 // within the next 7 days (09-27, 10-01); budget_transactions sum to 300000
 // of 500000 allocated_cents, i.e. 60% used; and of the two events with an
 // rsvp_deadline in the next 7 days (event 1, event 2), event 1 is already
-// rsvped by family 1, leaving only event 2 in rsvp_deadlines.
+// rsvped by family 1, leaving only event 2 in rsvp_deadlines. These are
+// Sofia's (star 1) counts, which ?star=1 keeps unchanged since Leo's rows
+// carry star_id 2.
 const EXPECTED_OVERDUE_TODOS = 3;
 const EXPECTED_DUE_SOON_TODOS = 2;
 const EXPECTED_PERCENT_USED = 60;
@@ -34,11 +36,11 @@ interface DashboardResponse {
   };
 }
 
-test("GET /api/dashboard returns nudges computed from seed data", async () => {
+test("GET /api/dashboard?star=1 returns nudges computed from seed data", async () => {
   const server = app.listen(0);
   try {
     const { port } = server.address() as AddressInfo;
-    const res = await fetch(`http://127.0.0.1:${port}/api/dashboard`);
+    const res = await fetch(`http://127.0.0.1:${port}/api/dashboard?star=1`);
     assert.equal(res.status, 200);
     const body = (await res.json()) as DashboardResponse;
 
@@ -73,6 +75,33 @@ test("GET /api/dashboard returns nudges computed from seed data", async () => {
       body.budget.remaining_cents,
       body.budget.allocated_cents - body.budget.spent_cents,
     );
+  } finally {
+    server.close();
+  }
+});
+
+// Unfiltered (no ?star) folds in Leo's (star 2) 2 overdue required todos,
+// so the required-overdue nudge rises from 3 to 5.
+test("GET /api/dashboard with no star filter returns overdue todos across both stars", async () => {
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as AddressInfo;
+    const res = await fetch(`http://127.0.0.1:${port}/api/dashboard`);
+    assert.equal(res.status, 200);
+    const body = (await res.json()) as DashboardResponse;
+
+    assert.equal(body.overdue_todos.length, 5);
+  } finally {
+    server.close();
+  }
+});
+
+test("GET /api/dashboard?star=abc returns 400", async () => {
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as AddressInfo;
+    const res = await fetch(`http://127.0.0.1:${port}/api/dashboard?star=abc`);
+    assert.equal(res.status, 400);
   } finally {
     server.close();
   }

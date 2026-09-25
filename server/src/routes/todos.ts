@@ -43,13 +43,24 @@ function withStatus(row: TodoRow) {
   return { ...row, status: statusFor(row, new Date()) };
 }
 
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
+  const { star } = req.query;
+  let starId: number | null = null;
+  if (star !== undefined) {
+    starId = Number(star);
+    if (typeof star !== "string" || !Number.isInteger(starId) || starId <= 0) {
+      return res.status(400).json({ error: "star must be a positive integer" });
+    }
+  }
+
+  // star absent means every Star (and family-wide todos); star present
+  // means that Star's todos plus the family-wide ones (star_id IS NULL).
   const { rows } = await pool.query<TodoRow>(
     `SELECT ${SELECT_COLUMNS}
      FROM todos
-     WHERE family_id = $1
+     WHERE family_id = $1 AND ($2::int IS NULL OR star_id = $2 OR star_id IS NULL)
      ORDER BY completed_at NULLS FIRST, due_date ASC`,
-    [FAMILY_ID],
+    [FAMILY_ID, starId],
   );
   res.json(rows.map(withStatus));
 });

@@ -9,15 +9,25 @@ const VALID_KINDS = new Set(["course", "competition", "camp"]);
 const router = Router();
 
 router.get("/", async (req, res) => {
-  const { kind } = req.query;
+  const { kind, star } = req.query;
 
   if (kind !== undefined && (typeof kind !== "string" || !VALID_KINDS.has(kind))) {
     res.status(400).json({ error: "kind must be one of course, competition, camp" });
     return;
   }
 
+  let starId: number | null = null;
+  if (star !== undefined) {
+    starId = Number(star);
+    if (typeof star !== "string" || !Number.isInteger(starId) || starId <= 0) {
+      res.status(400).json({ error: "star must be a positive integer" });
+      return;
+    }
+  }
+
   // NULLS LAST keeps rows with no start_date (in-progress programs) grouped
-  // at the end of each star's list instead of sorting to the top.
+  // at the end of each star's list instead of sorting to the top. star
+  // absent means every Star for this family.
   const { rows } = await pool.query(
     `SELECT s.id AS star_id, s.first_name, s.grade,
             h.id AS history_id, h.kind, h.title, h.provider,
@@ -26,9 +36,9 @@ router.get("/", async (req, res) => {
      FROM stars s
      LEFT JOIN program_history h
        ON h.star_id = s.id AND ($1::text IS NULL OR h.kind = $1)
-     WHERE s.family_id = $2
+     WHERE s.family_id = $2 AND ($3::int IS NULL OR s.id = $3)
      ORDER BY s.id, h.start_date DESC NULLS LAST`,
-    [kind ?? null, FAMILY_ID],
+    [kind ?? null, FAMILY_ID, starId],
   );
 
   type Star = {

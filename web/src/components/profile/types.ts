@@ -3,6 +3,7 @@ export interface Parent {
   name: string;
   email: string;
   phone: string | null;
+  preferred_language: string | null;
   is_primary: boolean;
 }
 
@@ -12,6 +13,8 @@ export interface Star {
   grade: number;
   school_name: string | null;
   school_district: string | null;
+  math_teacher: string | null;
+  counselor_email: string | null;
 }
 
 export interface Family {

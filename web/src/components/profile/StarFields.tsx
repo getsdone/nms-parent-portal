@@ -1,14 +1,32 @@
 import type { Star } from "./types";
 
+export type StarField = "school_name" | "school_district" | "grade" | "math_teacher" | "counselor_email";
+
 interface Props {
   star: Star;
-  onChange: (field: "school_name" | "school_district" | "grade", value: string) => void;
+  onChange: (field: StarField, value: string) => void;
 }
 
+/** Inputs only; the Family info section card supplies the heading and actions. */
 export default function StarFields({ star, onChange }: Props) {
   return (
-    <fieldset className="fieldset">
-      <legend>{star.first_name}</legend>
+    <>
+      <label className="field">
+        School
+        <input
+          type="text"
+          value={star.school_name ?? ""}
+          onChange={(e) => onChange("school_name", e.target.value)}
+        />
+      </label>
+      <label className="field">
+        District
+        <input
+          type="text"
+          value={star.school_district ?? ""}
+          onChange={(e) => onChange("school_district", e.target.value)}
+        />
+      </label>
       <label className="field">
         Grade
         <input
@@ -18,21 +36,21 @@ export default function StarFields({ star, onChange }: Props) {
         />
       </label>
       <label className="field">
-        School name
+        Math teacher
         <input
           type="text"
-          value={star.school_name ?? ""}
-          onChange={(e) => onChange("school_name", e.target.value)}
+          value={star.math_teacher ?? ""}
+          onChange={(e) => onChange("math_teacher", e.target.value)}
         />
       </label>
       <label className="field">
-        School district
+        School counselor
         <input
-          type="text"
-          value={star.school_district ?? ""}
-          onChange={(e) => onChange("school_district", e.target.value)}
+          type="email"
+          value={star.counselor_email ?? ""}
+          onChange={(e) => onChange("counselor_email", e.target.value)}
         />
       </label>
-    </fieldset>
+    </>
   );
 }

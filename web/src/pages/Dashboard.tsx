@@ -2,15 +2,16 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api";
 import type { DashboardData, TodoNudge } from "../components/dashboard/types";
-import type { Family } from "../components/profile/types";
+import type { Family, Star } from "../components/profile/types";
+import { useStar, withStar } from "../star";
 import TodoNudgeCard from "../components/dashboard/TodoNudgeCard";
 import EventNudgeCard, { formatDateTime } from "../components/dashboard/EventNudgeCard";
 import { daysFromToday, formatCents, formatEventWhen, plural } from "../components/format";
 
-function Greeting({ family }: { family: Family | null }) {
+function Greeting({ family, star }: { family: Family | null; star: Star | null }) {
   const primary = family?.parents.find((p) => p.is_primary) ?? family?.parents[0];
   const parentFirst = primary?.name.trim().split(/\s+/)[0];
-  const starFirst = family?.stars[0]?.first_name;
+  const starFirst = star?.first_name;
   return (
     <header className="greeting">
       <h1 className="page__title">{parentFirst ? `Hi, ${parentFirst}.` : "Hi."}</h1>
@@ -69,30 +70,38 @@ function SummaryRow({ to, label, value, detail }: { to: string; label: string; v
 
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
-  const [family, setFamily] = useState<Family | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // The greeting falls back to "Hi." if /api/family fails; the dashboard still renders.
+  const { family, star, ready } = useStar();
+  const starId = star?.id;
 
   useEffect(() => {
-    api<DashboardData>("/dashboard")
-      .then(setData)
-      .catch((err) => setError(err instanceof Error ? err.message : String(err)));
-    // The greeting falls back to "Hi." if this fails; the dashboard still renders.
-    api<Family>("/family")
-      .then(setFamily)
-      .catch(() => setFamily(null));
-  }, []);
+    if (!ready) return;
+    let cancelled = false;
+    setError(null);
+    api<DashboardData>(withStar("/dashboard", starId))
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ready, starId]);
 
   if (error) {
     return (
       <div className="page">
-        <Greeting family={family} />
+        <Greeting family={family} star={star} />
         <p className="alert" role="alert">{error}</p>
       </div>
     );
   }
 
   if (!data) {
-    return <Greeting family={family} />;
+    return <Greeting family={family} star={star} />;
   }
 
   const [heroTodo, ...otherOverdue] = data.overdue_todos;
@@ -106,12 +115,12 @@ export default function Dashboard() {
 
   return (
     <div className="page">
-      <Greeting family={family} />
+      <Greeting family={family} star={star} />
 
       {heroTodo ? (
         <OverdueHero todo={heroTodo} total={data.overdue_todos.length} />
       ) : (
-        data.rsvp_deadlines.length === 0 && <p className="empty">Nothing needs your attention.</p>
+        needsAttentionCount === 0 && <p className="empty">Nothing needs your attention.</p>
       )}
 
       <ul className="summary">

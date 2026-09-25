@@ -17,7 +17,8 @@ CREATE TABLE parents (
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   phone TEXT,
-  is_primary BOOLEAN NOT NULL DEFAULT FALSE
+  is_primary BOOLEAN NOT NULL DEFAULT FALSE,
+  preferred_language TEXT
 );
 
 CREATE TABLE stars (
@@ -26,12 +27,15 @@ CREATE TABLE stars (
   first_name TEXT NOT NULL,
   grade INTEGER NOT NULL,
   school_name TEXT,
-  school_district TEXT
+  school_district TEXT,
+  math_teacher TEXT,
+  counselor_email TEXT
 );
 
 CREATE TABLE todos (
   id SERIAL PRIMARY KEY,
   family_id INTEGER NOT NULL REFERENCES families(id) ON DELETE CASCADE,
+  star_id INTEGER REFERENCES stars(id) ON DELETE CASCADE,
   title TEXT NOT NULL,
   description TEXT,
   link TEXT,
