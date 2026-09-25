@@ -1,4 +1,4 @@
-import express from "express";
+import express, { type NextFunction, type Request, type Response } from "express";
 import familyRouter from "./routes/family.js";
 import todosRouter from "./routes/todos.js";
 import historyRouter from "./routes/history.js";
@@ -22,3 +22,23 @@ app.use("/api/history", historyRouter);
 app.use("/api/budget", budgetRouter);
 app.use("/api/events", eventsRouter);
 app.use("/api/dashboard", dashboardRouter);
+
+// Unmatched /api paths get a JSON 404 instead of falling through to the
+// SPA fallback registered later in index.ts.
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "not found" });
+});
+
+// Express 5 forwards a rejected promise from an async handler here
+// automatically, so a DB error no longer leaves the request hanging.
+export function errorHandler(
+  err: unknown,
+  _req: Request,
+  res: Response,
+  _next: NextFunction,
+) {
+  console.error(err);
+  res.status(500).json({ error: "internal error" });
+}
+
+app.use(errorHandler);
