@@ -12,15 +12,22 @@ https://web-production-8306d.up.railway.app
 | Events | Browse virtual and in-person events, RSVP or cancel, see what they already RSVP'd to first. |
 | Budget | Family budget for the year: allocated, spent, remaining, every transaction. |
 | History | Each Star's courses, competition results, and camps, filterable by kind. |
-| Profile | View and edit address, school, district, grade, and parent contact details. |
+| Family info | Read-only cards for each guardian and caregiver, the home address, and the selected Star's school, each with its own Edit. |
+| Documents | What the family already sent and where each item stands. |
+| Calendar | One ICS feed per family: RSVP'd events, due dates, and program dates, subscribable from the Events page. |
+
+The header has a Star switcher. Every page scopes to the selected Star.
+An "Acting as" control stands in for the signed-in user: a caregiver sees
+and completes to-dos and RSVPs but cannot see the budget or edit anyone
+else's details. To-dos record who completed them.
 
 Nudges are computed at read time from the same tables the other pages use.
 Nothing is stored twice.
 
 ## Stack
 
-- `web/` Vite, React, TypeScript, react-router. Plain semantic HTML with no
-  styling; visual design was done separately.
+- `web/` Vite, React, TypeScript, react-router. Styled to the design made
+  separately in Claude Design; tokens and classes live in `src/index.css`.
 - `server/` Express 5 and node-postgres. One route file per page. Async
   handler errors reach one JSON error handler.
 - `db/` `schema.sql`, `seed.sql`, and `apply.ts`, which drops and recreates
@@ -49,8 +56,14 @@ cp .env.example .env   # set DATABASE_URL
 npm run db:apply
 npm run dev:server     # port 3000
 npm run dev:web        # Vite on 5173, proxies /api
-npm test               # node:test against DATABASE_URL
+npm test               # unit tests, then server tests against DATABASE_URL
+npm run test:e2e       # Playwright, starts its own server on 4590
 ```
+
+Tests: 22 unit tests for date and money helpers, run in three timezones;
+33 server route tests; 21 Playwright tests that load every page, toggle a
+to-do, RSVP, edit the profile, and check no page scrolls sideways at 390px.
+Every test that changes data puts it back.
 
 ## How it was built
 
@@ -62,6 +75,16 @@ no part in the design read every branch before its pull request. CodeRabbit
 reviewed each pull request on GitHub. Review findings that were fixed: the
 to-do toggle did not revert on a failed save, and Express 4 dropped async
 errors on the floor.
+
+## Next
+
+The ten largest gaps for daily use are GitHub issues 15 to 24, four marked
+high. Multi-guardian households (#20) landed as WP8. The calendar feed
+(#19) and the Documents view (#17) landed in the release branch. Budget
+purchase requests (#18) is designed in `docs/plan.md` and not built. CI that
+runs the tests on each pull request and applies schema changes before
+Railway deploys is #26. The full design-versus-build table is in
+`docs/design-gaps.md` and the data model in `docs/data-model.md`.
 
 ## Not built, on purpose
 
