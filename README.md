@@ -54,6 +54,7 @@ shifts a day.
 npm install
 cp .env.example .env   # set DATABASE_URL
 npm run db:apply
+npm run db:demo        # optional: richer sales-demo data (replaces db:apply)
 npm run dev:server     # port 3000
 npm run dev:web        # Vite on 5173, proxies /api
 npm test               # unit tests, then server tests against DATABASE_URL

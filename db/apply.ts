@@ -33,6 +33,10 @@ async function main() {
   const schema = readFileSync(path.resolve(__dirname, "schema.sql"), "utf8");
   const seed = readFileSync(path.resolve(__dirname, "seed.sql"), "utf8");
 
+  const demo = process.argv.includes("--demo")
+    ? readFileSync(path.resolve(__dirname, "demo.sql"), "utf8")
+    : null;
+
   const client = new Client({ connectionString: databaseUrl });
   await client.connect();
 
@@ -40,6 +44,7 @@ async function main() {
     await client.query("BEGIN");
     await client.query(schema);
     await client.query(seed);
+    if (demo) await client.query(demo);
     await client.query("COMMIT");
   } catch (err) {
     await client.query("ROLLBACK");
